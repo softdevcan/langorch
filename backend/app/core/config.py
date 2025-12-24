@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str = "langorch"
-    POSTGRES_PASSWORD: str = "changeme"
+    POSTGRES_PASSWORD: str = "changeme_postgres_password"
     POSTGRES_DB: str = "langorch"
     DATABASE_URL: str = ""
 

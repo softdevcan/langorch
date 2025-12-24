@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 import structlog
 
 from app.core.config import settings
+from app.api.v1.router import api_router
 
 # Structured logging
 logger = structlog.get_logger()
@@ -26,6 +27,9 @@ app.add_middleware(
     allow_methods=settings.CORS_ALLOW_METHODS,
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
+
+# Include API v1 router
+app.include_router(api_router, prefix=settings.API_PREFIX)
 
 
 @app.get("/")
