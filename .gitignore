@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+.next/
+out/
+build/
+.npm
+.eslintcache
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.secret
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data directories
+data/postgres/*
+data/redis/*
+data/qdrant/*
+!data/.gitkeep
+
+# Logs
+logs/*.log
+*.log
+
+# Docker
+.docker/
+
+# Temporary files
+*.tmp
+tmp/
+temp/
+
+# Documentation
+/docs
