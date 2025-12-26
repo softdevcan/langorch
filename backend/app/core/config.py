@@ -43,6 +43,26 @@ class Settings(BaseSettings):
     CORS_ALLOW_METHODS: List[str] = ["*"]
     CORS_ALLOW_HEADERS: List[str] = ["*"]
 
+    # HashiCorp Vault
+    VAULT_ADDR: str = "http://localhost:8200"
+    VAULT_TOKEN: str = "dev-root-token"
+    VAULT_MOUNT_POINT: str = "secret"
+    VAULT_TENANT_PATH: str = "tenants"  # secret/tenants/{tenant_id}
+
+    # Qdrant Vector Store
+    QDRANT_HOST: str = "localhost"
+    QDRANT_PORT: int = 6333
+    QDRANT_API_KEY: str = ""  # Optional for local dev
+    QDRANT_COLLECTION_NAME: str = "documents"
+    QDRANT_URL: str = ""
+
+    # Document Processing
+    CHUNK_SIZE: int = 1000  # Characters per chunk
+    CHUNK_OVERLAP: int = 200  # Overlap between chunks
+    MAX_FILE_SIZE_MB: int = 50  # Maximum file upload size
+    EMBEDDING_MODEL: str = "text-embedding-3-small"  # OpenAI embedding model
+    EMBEDDING_DIMENSIONS: int = 1536  # Embedding vector dimensions
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -61,6 +81,14 @@ class Settings(BaseSettings):
             f"{info.data['POSTGRES_PASSWORD']}@{info.data['POSTGRES_HOST']}:"
             f"{info.data['POSTGRES_PORT']}/{info.data['POSTGRES_DB']}"
         )
+
+    @field_validator("QDRANT_URL", mode="before")
+    @classmethod
+    def assemble_qdrant_url(cls, v: str, info) -> str:
+        """Construct Qdrant URL if not provided"""
+        if v:
+            return v
+        return f"http://{info.data['QDRANT_HOST']}:{info.data['QDRANT_PORT']}"
 
 
 settings = Settings()
