@@ -3,8 +3,13 @@ import { User, UserCreate, UserUpdate } from "../types";
 
 export const usersApi = {
   list: async (): Promise<User[]> => {
-    const { data } = await apiClient.get<User[]>("/api/v1/users/");
-    return data;
+    const { data } = await apiClient.get<{
+      items: User[];
+      total: number;
+      page: number;
+      page_size: number;
+    }>("/api/v1/users/");
+    return data.items;
   },
 
   get: async (userId: string): Promise<User> => {

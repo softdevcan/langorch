@@ -37,7 +37,8 @@ export default function LoginPage() {
     try {
       await login(data);
       toast.success("Login successful!");
-      router.push("/dashboard");
+      // Use window.location for hard navigation to ensure state is fresh
+      window.location.href = "/dashboard";
     } catch (error: any) {
       toast.error(error.response?.data?.detail || "Login failed. Please try again.");
     } finally {

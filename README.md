@@ -119,10 +119,11 @@ Hangi durumda hangi dokümanı okumalısınız?
 
 | Version | Hedef | Durum | Doküman |
 |---------|-------|-------|---------|
-| **v0.1** | MVP - Authentication & Basic CRUD | 🏗️ In Progress | [Version 0.1](docs/development-phases/README.md#-version-01-mvp---authentication--basic-crud) |
-| **v0.2** | Security & Document Management | 📋 Planned | [Version 0.2](docs/development-phases/README.md#-version-02-security--document-management) |
-| **v0.3** | LangGraph & Chat Interface | 📋 Planned | [Version 0.3](docs/development-phases/README.md#-version-03-langgraph--chat-interface) |
-| **v1.0** | Production Ready | 📋 Planned | [Version 1.0](docs/development-phases/README.md#-version-10-production-ready) |
+| **v0.1** | MVP - Authentication & Basic CRUD | ✅ Complete | [Version 0.1](docs/development-phases/DEVELOPMENT_ROADMAP.md#-version-01-mvp-checklist) |
+| **v0.2** | Security & Document Management | 📋 Planned | [Version 0.2](docs/development-phases/DEVELOPMENT_ROADMAP.md#-version-02-security--document-management-checklist) |
+| **v0.2.5** | UX Polish & Internationalization | 📋 Planned | [Version 0.2.5](docs/development-phases/DEVELOPMENT_ROADMAP.md#-version-025-ux-polish--internationalization-checklist) |
+| **v0.3** | LangGraph & Chat Interface | 📋 Planned | [Version 0.3](docs/development-phases/DEVELOPMENT_ROADMAP.md#-version-03-langgraph--chat-checklist) |
+| **v1.0** | Production Ready | 📋 Planned | [Version 1.0](docs/development-phases/DEVELOPMENT_ROADMAP.md#-version-10-production-checklist) |
 
 ### Geliştirme Fazları
 

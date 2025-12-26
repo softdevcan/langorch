@@ -29,9 +29,9 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // Token geçersiz - logout
+      // Token geçersiz veya expire olmuş - logout ve redirect
       localStorage.removeItem("access_token");
-      localStorage.removeItem("user");
+      localStorage.removeItem("auth-storage");
 
       // Login sayfasına yönlendir
       if (typeof window !== "undefined" && window.location.pathname !== "/login") {

@@ -55,15 +55,20 @@ export const useAuthStore = create<AuthState>()(
           await authApi.logout();
         } catch (error) {
           console.error("Logout error:", error);
+          // Don't throw error - always complete logout on client side
         } finally {
-          // Clear token from localStorage
+          // Clear all auth data from localStorage
           localStorage.removeItem("access_token");
+          localStorage.removeItem("auth-storage");
 
           set({
             user: null,
             token: null,
             error: null,
           });
+
+          // Redirect to login page
+          window.location.href = "/login";
         }
       },
 

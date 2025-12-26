@@ -52,16 +52,15 @@ async def login(
     summary="Logout",
     description="Logout current user (client-side token removal)",
 )
-async def logout(
-    current_user: User = Depends(get_current_user),
-):
+async def logout():
     """
     Logout endpoint
 
     Note: JWT tokens are stateless, so logout is handled client-side.
-    This endpoint is mainly for logging purposes and future token blacklisting.
+    This endpoint doesn't require authentication since the token might be expired.
+    It's mainly for consistency and future token blacklisting.
     """
-    logger.info("user_logged_out", user_id=str(current_user.id), email=current_user.email)
+    logger.info("user_logout_requested")
     return LogoutResponse(message="Successfully logged out")
 
 
