@@ -5,6 +5,7 @@ from enum import Enum as PyEnum
 from sqlalchemy import String, Boolean, ForeignKey, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
+from typing import List
 
 from app.models.base import BaseModel
 
@@ -76,6 +77,11 @@ class User(BaseModel):
     tenant: Mapped["Tenant"] = relationship(
         "Tenant",
         back_populates="users"
+    )
+
+    documents: Mapped[List["Document"]] = relationship(
+        "Document",
+        back_populates="user"
     )
 
     def __repr__(self) -> str:

@@ -59,5 +59,17 @@ class Tenant(BaseModel):
         cascade="all, delete-orphan"
     )
 
+    documents: Mapped[List["Document"]] = relationship(
+        "Document",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
+
+    document_chunks: Mapped[List["DocumentChunk"]] = relationship(
+        "DocumentChunk",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
+
     def __repr__(self) -> str:
         return f"<Tenant(id={self.id}, name={self.name}, slug={self.slug})>"

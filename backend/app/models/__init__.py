@@ -5,6 +5,8 @@ from app.models.base import Base, BaseModel
 from app.models.tenant import Tenant
 from app.models.user import User, UserRole
 from app.models.audit import AuditLog
+from app.models.document import Document, DocumentStatus
+from app.models.document_chunk import DocumentChunk
 
 __all__ = [
     "Base",
@@ -13,4 +15,7 @@ __all__ = [
     "User",
     "UserRole",
     "AuditLog",
+    "Document",
+    "DocumentStatus",
+    "DocumentChunk",
 ]
