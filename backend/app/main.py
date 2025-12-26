@@ -66,6 +66,25 @@ async def startup_event():
         environment=settings.APP_ENV,
     )
 
+    # Initialize Qdrant collection for documents
+    try:
+        from app.core.qdrant_client import qdrant_store
+
+        await qdrant_store.create_collection(
+            collection_name=settings.QDRANT_COLLECTION_NAME,
+            vector_size=settings.EMBEDDING_DIMENSIONS,
+        )
+        logger.info(
+            "qdrant_collection_initialized",
+            collection=settings.QDRANT_COLLECTION_NAME,
+            dimensions=settings.EMBEDDING_DIMENSIONS,
+        )
+    except Exception as e:
+        logger.error(
+            "qdrant_collection_initialization_failed",
+            error=str(e),
+        )
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
