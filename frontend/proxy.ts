@@ -1,12 +1,18 @@
-import { NextResponse } from "next/server";
+import createMiddleware from 'next-intl/middleware';
+import type { NextRequest } from 'next/server';
+import { locales, defaultLocale } from './i18n';
 
-export function proxy() {
-  // Since we use localStorage for auth (client-side only),
-  // we can't reliably check auth state in server-side proxy.
-  // Authentication is handled by client-side ProtectedRoute component.
-  return NextResponse.next();
+const intlMiddleware = createMiddleware({
+  locales,
+  defaultLocale,
+  localePrefix: 'as-needed'
+});
+
+export function proxy(request: NextRequest) {
+  // Apply next-intl middleware for i18n
+  return intlMiddleware(request);
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)']
 };

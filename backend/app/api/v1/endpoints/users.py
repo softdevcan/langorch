@@ -3,7 +3,7 @@ User management endpoints
 """
 from typing import Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
 
@@ -16,9 +16,17 @@ from app.core.exceptions import (
 )
 from app.api.dependencies import get_current_user, require_role
 from app.models.user import User, UserRole
-from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserListResponse
+from app.schemas.user import (
+    UserCreate,
+    UserUpdate,
+    UserResponse,
+    UserListResponse,
+    UserPreferencesUpdate,
+    PasswordChange,
+)
 from app.schemas import MessageResponse
 from app.services.user_service import user_service
+from app.core.security import verify_password, get_password_hash
 
 logger = structlog.get_logger()
 
@@ -182,3 +190,96 @@ async def delete_user(
         return MessageResponse(message="User deleted successfully")
     except NotFoundException as e:
         raise http_404_not_found(detail=e.detail or e.message)
+
+
+@router.get(
+    "/me/preferences",
+    response_model=dict,
+    status_code=status.HTTP_200_OK,
+    summary="Get current user preferences",
+    description="Get preferences for the current user",
+)
+async def get_my_preferences(
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get current user's preferences (theme, language, timezone)
+
+    Returns preferences stored in user metadata
+    """
+    return {
+        "preferences": current_user.metadata or {}
+    }
+
+
+@router.put(
+    "/me/preferences",
+    response_model=dict,
+    status_code=status.HTTP_200_OK,
+    summary="Update current user preferences",
+    description="Update preferences for the current user",
+)
+async def update_my_preferences(
+    preferences: UserPreferencesUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Update current user's preferences
+
+    - **theme**: Theme preference ('light', 'dark', 'system')
+    - **language**: Language preference ('en', 'tr')
+    - **timezone**: Timezone preference
+    """
+    # Update user preferences (stored in metadata JSONB column)
+    if not current_user.metadata:
+        current_user.metadata = {}
+
+    if preferences.theme:
+        current_user.metadata["theme"] = preferences.theme
+    if preferences.language:
+        current_user.metadata["language"] = preferences.language
+    if preferences.timezone:
+        current_user.metadata["timezone"] = preferences.timezone
+
+    await db.commit()
+    await db.refresh(current_user)
+
+    logger.info("user_preferences_updated", user_id=str(current_user.id))
+
+    return {
+        "message": "Preferences updated successfully",
+        "preferences": current_user.metadata
+    }
+
+
+@router.put(
+    "/me/password",
+    response_model=MessageResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Change current user password",
+    description="Change password for the current user",
+)
+async def change_my_password(
+    password_data: PasswordChange,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Change current user's password
+
+    - **current_password**: Current password (for verification)
+    - **new_password**: New password (min 8 chars, must have upper, lower, digit)
+    """
+    # Verify current password
+    if not verify_password(password_data.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    # Hash and save new password
+    current_user.hashed_password = get_password_hash(password_data.new_password)
+
+    await db.commit()
+
+    logger.info("user_password_changed", user_id=str(current_user.id))
+
+    return MessageResponse(message="Password changed successfully")

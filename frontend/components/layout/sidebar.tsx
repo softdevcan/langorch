@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import {
   Users,
@@ -15,7 +16,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { UserRole } from "@/lib/types";
 
 interface NavItem {
-  title: string;
+  titleKey: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   roles?: UserRole[];
@@ -23,28 +24,28 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    title: "Dashboard",
+    titleKey: "dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
-    title: "Documents",
+    titleKey: "documents",
     href: "/dashboard/documents",
     icon: FileText,
   },
   {
-    title: "Users",
+    titleKey: "users",
     href: "/dashboard/users",
     icon: Users,
   },
   {
-    title: "Tenants",
+    titleKey: "tenants",
     href: "/dashboard/tenants",
     icon: Building2,
     roles: [UserRole.SUPER_ADMIN],
   },
   {
-    title: "Settings",
+    titleKey: "settings",
     href: "/dashboard/settings",
     icon: Settings,
   },
@@ -53,6 +54,7 @@ const navItems: NavItem[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
+  const t = useTranslations("nav");
 
   const filteredNavItems = navItems.filter((item) => {
     if (!item.roles) return true;
@@ -64,13 +66,13 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-white">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-background">
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className="flex h-16 items-center border-b px-6">
           <Link href="/dashboard" className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-white font-bold text-lg">L</span>
+              <span className="text-primary-foreground font-bold text-lg">L</span>
             </div>
             <span className="text-xl font-bold">LangOrch</span>
           </Link>
@@ -94,7 +96,7 @@ export function Sidebar() {
                 )}
               >
                 <Icon className="h-5 w-5" />
-                {item.title}
+                {t(item.titleKey as any)}
               </Link>
             );
           })}
@@ -114,7 +116,7 @@ export function Sidebar() {
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <LogOut className="h-5 w-5" />
-            Logout
+            {t("logout")}
           </button>
         </div>
       </div>

@@ -76,3 +76,30 @@ class UserListResponse(BaseSchema):
     total: int
     page: int
     page_size: int
+
+
+class UserPreferencesUpdate(BaseSchema):
+    """Schema for updating user preferences"""
+    theme: Optional[str] = Field(None, description="Theme preference: 'light', 'dark', 'system'")
+    language: Optional[str] = Field(None, description="Language preference: 'en', 'tr'")
+    timezone: Optional[str] = Field(None, description="Timezone preference")
+
+
+class PasswordChange(BaseSchema):
+    """Schema for changing user password"""
+    current_password: str = Field(..., description="Current password")
+    new_password: str = Field(..., min_length=8, max_length=100, description="New password")
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
+        """Validate new password strength"""
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        if not any(c.isupper() for c in v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(c.islower() for c in v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not any(c.isdigit() for c in v):
+            raise ValueError("Password must contain at least one digit")
+        return v
