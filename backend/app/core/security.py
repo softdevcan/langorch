@@ -163,3 +163,9 @@ class SecurityManager:
 
 # Create singleton instance
 security = SecurityManager()
+
+# Export commonly used functions for backward compatibility
+verify_password = security.verify_password
+get_password_hash = security.hash_password
+create_access_token = security.create_access_token
+decode_access_token = security.decode_access_token

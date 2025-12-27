@@ -136,6 +136,16 @@ class Document(BaseModel):
         cascade="all, delete-orphan"
     )
 
+    llm_conversations: Mapped[List["LLMConversation"]] = relationship(
+        "LLMConversation",
+        back_populates="document"
+    )
+
+    llm_operations: Mapped[List["LLMOperation"]] = relationship(
+        "LLMOperation",
+        back_populates="document"
+    )
+
     # Indexes
     __table_args__ = (
         # Index for tenant-based queries

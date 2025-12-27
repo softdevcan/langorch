@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, FileText, Loader2, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import { DocumentActions } from "./document-actions";
 
 interface DocumentTableProps {
   documents: Document[];
@@ -127,6 +128,9 @@ export function DocumentTable({ documents, onDelete, onView }: DocumentTableProp
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    {document.status === DocumentStatus.COMPLETED && (
+                      <DocumentActions document={document} />
+                    )}
                     {onView && document.status === DocumentStatus.COMPLETED && (
                       <Button
                         variant="ghost"

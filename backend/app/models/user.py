@@ -84,5 +84,15 @@ class User(BaseModel):
         back_populates="user"
     )
 
+    llm_conversations: Mapped[List["LLMConversation"]] = relationship(
+        "LLMConversation",
+        back_populates="user"
+    )
+
+    llm_operations: Mapped[List["LLMOperation"]] = relationship(
+        "LLMOperation",
+        back_populates="user"
+    )
+
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, role={self.role})>"

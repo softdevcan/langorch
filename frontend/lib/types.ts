@@ -176,3 +176,72 @@ export interface EmbeddingProviderTestResponse {
   message: string;
   dimensions?: number;
 }
+
+// ====== LLM Types ======
+
+export interface DocumentSummarizeRequest {
+  document_id: string;
+  model?: string;
+  max_length?: number;
+}
+
+export interface DocumentSummarizeResponse {
+  operation_id: string;
+  summary: string;
+  model_used: string;
+  tokens_used: number;
+  cost_estimate: number;
+}
+
+export interface DocumentAskRequest {
+  document_id: string;
+  question: string;
+  model?: string;
+  include_chunks?: boolean;
+  max_chunks?: number;
+}
+
+export interface DocumentAskResponse {
+  operation_id: string;
+  answer: string;
+  sources: Array<{
+    chunk_index: number;
+    score: number;
+    content_preview: string;
+  }>;
+  model_used: string;
+  tokens_used: number;
+  cost_estimate: number;
+}
+
+export interface DocumentTransformRequest {
+  document_id: string;
+  instruction: string;
+  model?: string;
+  output_format?: 'text' | 'markdown' | 'json';
+}
+
+export interface DocumentTransformResponse {
+  operation_id: string;
+  transformed_content: string;
+  model_used: string;
+  tokens_used: number;
+  cost_estimate: number;
+}
+
+export interface LLMOperation {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  document_id: string | null;
+  operation_type: 'summarize' | 'ask' | 'transform';
+  input_data: any;
+  output_data: any;
+  model_used: string | null;
+  tokens_used: number | null;
+  cost_estimate: number | null;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  error_message: string | null;
+  created_at: string;
+  completed_at: string | null;
+}

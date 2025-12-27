@@ -250,6 +250,43 @@ class VaultClient:
             )
             return []
 
+    def get_tenant_secrets(self, tenant_id: str) -> Dict[str, Any]:
+        """
+        Get all secrets for a tenant (compatibility method)
+
+        Args:
+            tenant_id: Tenant UUID
+
+        Returns:
+            Dictionary of all tenant secrets
+        """
+        if not self.enabled or not self.client:
+            return {}
+
+        try:
+            # Try to get all common secrets
+            secrets = {}
+
+            # Try OpenAI API key
+            openai_key = self.get_secret(tenant_id, "llm-providers/openai", "api_key")
+            if openai_key:
+                secrets["openai_api_key"] = openai_key
+
+            # Try Anthropic API key
+            anthropic_key = self.get_secret(tenant_id, "llm-providers/anthropic", "api_key")
+            if anthropic_key:
+                secrets["anthropic_api_key"] = anthropic_key
+
+            return secrets
+
+        except Exception as e:
+            logger.error(
+                "vault_get_tenant_secrets_error",
+                tenant_id=tenant_id,
+                error=str(e)
+            )
+            return {}
+
 
 # Singleton instance
 _vault_client: Optional[VaultClient] = None
@@ -261,3 +298,7 @@ def get_vault_client() -> VaultClient:
     if _vault_client is None:
         _vault_client = VaultClient()
     return _vault_client
+
+
+# Export singleton for convenience
+vault_client = get_vault_client()

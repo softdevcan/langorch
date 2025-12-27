@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ProtectedRoute } from "@/components/auth/protected-route";
-import { ThemeProvider } from "./providers";
+import { ThemeProvider } from "../providers";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
-import "./globals.css";
+import "../globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,13 +27,13 @@ export default async function RootLayout({
   params,
 }: Readonly<{
   children: React.ReactNode;
-  params: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }>) {
   const { locale } = await params;
   const messages = await getMessages({ locale });
 
   return (
-    <html lang={locale || "en"} suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

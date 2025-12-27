@@ -86,5 +86,17 @@ class Tenant(BaseModel):
         cascade="all, delete-orphan"
     )
 
+    llm_conversations: Mapped[List["LLMConversation"]] = relationship(
+        "LLMConversation",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
+
+    llm_operations: Mapped[List["LLMOperation"]] = relationship(
+        "LLMOperation",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
+
     def __repr__(self) -> str:
         return f"<Tenant(id={self.id}, name={self.name}, slug={self.slug})>"
