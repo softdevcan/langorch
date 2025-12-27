@@ -7,6 +7,8 @@ import structlog
 from .base import BaseEmbeddingProvider, ProviderType
 from .openai_provider import OpenAIProvider
 from .ollama_provider import OllamaProvider
+from .gemini_provider import GeminiProvider
+from .claude_provider import ClaudeProvider
 
 logger = structlog.get_logger()
 
@@ -57,18 +59,10 @@ class ProviderFactory:
                 return ProviderFactory._create_ollama_provider(config)
 
             elif provider_type == ProviderType.CLAUDE:
-                # TODO: Implement Claude provider
-                raise NotImplementedError(
-                    "Claude provider not yet implemented. "
-                    "Please use OpenAI or Ollama for now."
-                )
+                return ProviderFactory._create_claude_provider(config)
 
             elif provider_type == ProviderType.GEMINI:
-                # TODO: Implement Gemini provider
-                raise NotImplementedError(
-                    "Gemini provider not yet implemented. "
-                    "Please use OpenAI or Ollama for now."
-                )
+                return ProviderFactory._create_gemini_provider(config)
 
             else:
                 raise ValueError(f"Unsupported provider type: {provider_type}")
@@ -147,6 +141,66 @@ class ProviderFactory:
         )
 
     @staticmethod
+    def _create_gemini_provider(config: Dict[str, Any]) -> GeminiProvider:
+        """
+        Create Gemini provider instance
+
+        Args:
+            config: Gemini configuration
+
+        Returns:
+            Gemini provider instance
+
+        Raises:
+            ValueError: If API key is missing
+        """
+        api_key = config.get("api_key")
+        if not api_key:
+            raise ValueError("Gemini API key is required")
+
+        model = config.get("model", "text-embedding-004")
+
+        logger.info(
+            "creating_gemini_provider",
+            model=model,
+        )
+
+        return GeminiProvider(
+            api_key=api_key,
+            model=model,
+        )
+
+    @staticmethod
+    def _create_claude_provider(config: Dict[str, Any]) -> ClaudeProvider:
+        """
+        Create Claude (Voyage AI) provider instance
+
+        Args:
+            config: Claude/Voyage AI configuration
+
+        Returns:
+            Claude provider instance
+
+        Raises:
+            ValueError: If API key is missing
+        """
+        api_key = config.get("api_key")
+        if not api_key:
+            raise ValueError("Voyage AI API key is required for Claude embeddings")
+
+        model = config.get("model", "voyage-2")
+
+        logger.info(
+            "creating_claude_provider",
+            model=model,
+        )
+
+        return ClaudeProvider(
+            api_key=api_key,
+            model=model,
+        )
+
+    @staticmethod
     def get_default_config(provider_type: ProviderType) -> Dict[str, Any]:
         """
         Get default configuration for a provider type
@@ -172,14 +226,14 @@ class ProviderFactory:
 
         elif provider_type == ProviderType.CLAUDE:
             return {
-                "model": "claude-3-haiku-20240307",  # Placeholder
-                "dimensions": 1024,  # Placeholder
+                "model": "voyage-2",
+                "dimensions": 1024,
             }
 
         elif provider_type == ProviderType.GEMINI:
             return {
-                "model": "embedding-001",  # Placeholder
-                "dimensions": 768,  # Placeholder
+                "model": "text-embedding-004",
+                "dimensions": 768,
             }
 
         else:
@@ -223,10 +277,30 @@ class ProviderFactory:
                     return False, "Ollama base URL must start with http:// or https://"
 
             elif provider_type == ProviderType.CLAUDE:
-                return False, "Claude provider not yet implemented"
+                if not config.get("api_key"):
+                    return False, "Voyage AI API key is required for Claude embeddings"
+
+                model = config.get("model", "voyage-2")
+                valid_models = [
+                    "voyage-2",
+                    "voyage-large-2",
+                    "voyage-code-2",
+                    "voyage-lite-02-instruct",
+                ]
+                if model not in valid_models:
+                    return False, f"Invalid Voyage AI model. Valid models: {', '.join(valid_models)}"
 
             elif provider_type == ProviderType.GEMINI:
-                return False, "Gemini provider not yet implemented"
+                if not config.get("api_key"):
+                    return False, "Gemini API key is required"
+
+                model = config.get("model", "text-embedding-004")
+                valid_models = [
+                    "text-embedding-004",
+                    "embedding-001",
+                ]
+                if model not in valid_models:
+                    return False, f"Invalid Gemini model. Valid models: {', '.join(valid_models)}"
 
             else:
                 return False, f"Unsupported provider type: {provider_type}"

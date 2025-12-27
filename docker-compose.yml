@@ -49,7 +49,7 @@ services:
     networks:
       - langorch_network
 
-  # HashiCorp Vault (Development mode - Faz 2'de kullanılacak)
+  # HashiCorp Vault (Development mode)
   vault:
     image: hashicorp/vault:latest
     container_name: langorch_vault
@@ -58,12 +58,21 @@ services:
       VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
     ports:
       - "8200:8200"
+    volumes:
+      - ./data/vault:/vault/data
     cap_add:
       - IPC_LOCK
     networks:
       - langorch_network
-    profiles:
-      - full  # Sadece "docker-compose --profile full up" ile başlatılır
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    # Remove profiles to make it run by default
+    # profiles:
+    #   - full
 
   # Ollama (Local Embedding Models)
   ollama:

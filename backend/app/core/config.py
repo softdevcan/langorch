@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "LangOrch"
     APP_ENV: str = "development"
     APP_DEBUG: bool = True
-    APP_VERSION: str = "0.1.0"
+    APP_VERSION: str = "0.2.0"
 
     # API
     API_HOST: str = "0.0.0.0"
@@ -44,10 +44,9 @@ class Settings(BaseSettings):
     CORS_ALLOW_HEADERS: List[str] = ["*"]
 
     # HashiCorp Vault
-    VAULT_ADDR: str = "http://localhost:8200"
+    VAULT_ENABLED: bool = True  # Enable/disable Vault integration
+    VAULT_URL: str = "http://localhost:8200"
     VAULT_TOKEN: str = "dev-root-token"
-    VAULT_MOUNT_POINT: str = "secret"
-    VAULT_TENANT_PATH: str = "tenants"  # secret/tenants/{tenant_id}
 
     # Qdrant Vector Store
     QDRANT_HOST: str = "localhost"

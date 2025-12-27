@@ -17,7 +17,7 @@ logger = structlog.get_logger()
 # Create async engine
 engine: AsyncEngine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.APP_DEBUG,
+    echo=False,  # Disable SQL query logging
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,

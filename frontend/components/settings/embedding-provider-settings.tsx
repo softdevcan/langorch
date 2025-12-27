@@ -71,7 +71,7 @@ export function EmbeddingProviderSettings() {
       const testData = {
         provider,
         model,
-        api_key: apiKey || undefined,
+        api_key: (provider === ProviderType.OPENAI || provider === ProviderType.GEMINI || provider === ProviderType.CLAUDE) ? apiKey || undefined : undefined,
         base_url: provider === ProviderType.OLLAMA ? baseUrl : undefined,
       };
 
@@ -104,7 +104,7 @@ export function EmbeddingProviderSettings() {
         model,
       };
 
-      if (provider === ProviderType.OPENAI && apiKey) {
+      if ((provider === ProviderType.OPENAI || provider === ProviderType.GEMINI || provider === ProviderType.CLAUDE) && apiKey) {
         updateData.api_key = apiKey;
       }
 
@@ -143,6 +143,18 @@ export function EmbeddingProviderSettings() {
           { value: "nomic-embed-text", label: "nomic-embed-text (768 dims)" },
           { value: "mxbai-embed-large", label: "mxbai-embed-large (1024 dims)" },
           { value: "all-minilm", label: "all-minilm (384 dims)" },
+        ];
+      case ProviderType.GEMINI:
+        return [
+          { value: "text-embedding-004", label: "text-embedding-004 (768 dims)" },
+          { value: "embedding-001", label: "embedding-001 (768 dims)" },
+        ];
+      case ProviderType.CLAUDE:
+        return [
+          { value: "voyage-2", label: "voyage-2 (1024 dims)" },
+          { value: "voyage-large-2", label: "voyage-large-2 (1536 dims)" },
+          { value: "voyage-code-2", label: "voyage-code-2 (1536 dims)" },
+          { value: "voyage-lite-02-instruct", label: "voyage-lite-02-instruct (1024 dims)" },
         ];
       default:
         return [];
@@ -185,12 +197,8 @@ export function EmbeddingProviderSettings() {
             <SelectContent>
               <SelectItem value={ProviderType.OPENAI}>OpenAI</SelectItem>
               <SelectItem value={ProviderType.OLLAMA}>Ollama (Local)</SelectItem>
-              <SelectItem value={ProviderType.CLAUDE} disabled>
-                Claude (Coming Soon)
-              </SelectItem>
-              <SelectItem value={ProviderType.GEMINI} disabled>
-                Google Gemini (Coming Soon)
-              </SelectItem>
+              <SelectItem value={ProviderType.GEMINI}>Google Gemini</SelectItem>
+              <SelectItem value={ProviderType.CLAUDE}>Claude (Voyage AI)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -251,6 +259,75 @@ export function EmbeddingProviderSettings() {
               >
                 OpenAI Platform
               </a>
+            </p>
+          </div>
+        )}
+
+        {/* API Key (for Gemini) */}
+        {provider === ProviderType.GEMINI && (
+          <div className="space-y-2">
+            <Label htmlFor="api_key">
+              API Key {currentSettings?.has_api_key && "(configured)"}
+            </Label>
+            <Input
+              id="api_key"
+              type="password"
+              placeholder={
+                currentSettings?.has_api_key
+                  ? "Leave blank to keep existing key"
+                  : "AIza..."
+              }
+              value={apiKey}
+              onChange={(e) => {
+                setApiKey(e.target.value);
+                setTestResult(null);
+              }}
+            />
+            <p className="text-sm text-muted-foreground">
+              Your API key is stored securely in Vault. Get your key from{" "}
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Google AI Studio
+              </a>
+            </p>
+          </div>
+        )}
+
+        {/* API Key (for Claude/Voyage AI) */}
+        {provider === ProviderType.CLAUDE && (
+          <div className="space-y-2">
+            <Label htmlFor="api_key">
+              Voyage AI API Key {currentSettings?.has_api_key && "(configured)"}
+            </Label>
+            <Input
+              id="api_key"
+              type="password"
+              placeholder={
+                currentSettings?.has_api_key
+                  ? "Leave blank to keep existing key"
+                  : "pa-..."
+              }
+              value={apiKey}
+              onChange={(e) => {
+                setApiKey(e.target.value);
+                setTestResult(null);
+              }}
+            />
+            <p className="text-sm text-muted-foreground">
+              Your API key is stored securely in Vault. Get your key from{" "}
+              <a
+                href="https://www.voyageai.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Voyage AI
+              </a>
+              {" "}(Anthropic&apos;s recommended embeddings partner)
             </p>
           </div>
         )}

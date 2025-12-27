@@ -14,4 +14,4 @@ api_router.include_router(users.router)
 api_router.include_router(tenants.router)
 api_router.include_router(documents.router)
 api_router.include_router(secrets.router)
-api_router.include_router(settings.router, prefix="/settings")
+api_router.include_router(settings.router, prefix="/settings")  # Settings endpoints
