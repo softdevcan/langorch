@@ -24,6 +24,8 @@ from app.schemas.document import (
     SearchResult,
 )
 from app.services.embedding_service import embedding_service
+from app.services.embedding_providers import create_provider_from_tenant_config, ProviderType
+from app.models.tenant import Tenant
 
 logger = structlog.get_logger()
 
@@ -155,52 +157,99 @@ class DocumentService:
                     detail="No chunks generated from document content"
                 )
 
-            # Generate embeddings for all chunks (batch)
+            # Get tenant's embedding provider configuration
+            tenant = await db.get(Tenant, tenant_id)
+            if not tenant:
+                raise NotFoundException(
+                    "Tenant not found",
+                    detail=f"Tenant {tenant_id} not found"
+                )
+
+            # Try to generate embeddings for all chunks (batch)
+            # NOTE: Embeddings are optional - documents can be uploaded without them
             chunk_texts = [chunk["content"] for chunk in chunks]
-            embeddings = await embedding_service.generate_embeddings_batch(
-                texts=chunk_texts,
-                tenant_id=str(tenant_id),
-            )
+            embeddings = []
+            try:
+                # Create provider instance from tenant configuration
+                provider_config = tenant.embedding_config or {
+                    "provider": "openai",
+                    "model": "text-embedding-3-small",
+                }
+
+                # Get fallback API key from settings if using OpenAI
+                fallback_api_key = None
+                if tenant.embedding_provider == "openai":
+                    fallback_api_key = settings.OPENAI_API_KEY
+
+                provider = await create_provider_from_tenant_config(
+                    tenant_config=provider_config,
+                    fallback_api_key=fallback_api_key,
+                )
+
+                # Generate embeddings using the configured provider
+                embeddings = await provider.generate_embeddings_batch(
+                    texts=chunk_texts,
+                )
+
+                logger.info(
+                    "embeddings_generated_with_provider",
+                    document_id=str(document_id),
+                    provider=tenant.embedding_provider,
+                    model=provider_config.get("model"),
+                    chunk_count=len(chunk_texts),
+                )
+
+            except Exception as emb_error:
+                logger.warning(
+                    "embedding_generation_skipped",
+                    document_id=str(document_id),
+                    provider=tenant.embedding_provider,
+                    error=str(emb_error),
+                    message="Document will be saved without embeddings (search will be disabled)",
+                )
 
             # Create DocumentChunk records and prepare for Qdrant
             qdrant_points = []
             db_chunks = []
 
-            for chunk, embedding in zip(chunks, embeddings):
+            for i, chunk in enumerate(chunks):
+                # Get embedding if available
+                embedding = embeddings[i] if i < len(embeddings) and embeddings[i] is not None else None
+
                 if embedding is None:
-                    logger.warning(
-                        "chunk_embedding_failed",
+                    logger.info(
+                        "chunk_saved_without_embedding",
                         document_id=str(document_id),
                         chunk_index=chunk["chunk_index"],
                     )
-                    continue
 
-                # Create database record
+                # Create database record (embedding can be None)
                 db_chunk = DocumentChunk(
                     document_id=document.id,
                     tenant_id=tenant_id,
                     chunk_index=chunk["chunk_index"],
                     content=chunk["content"],
                     token_count=chunk["token_count"],
-                    embedding=embedding,
+                    embedding=embedding,  # Can be None
                     start_char=chunk["start_char"],
                     end_char=chunk["end_char"],
-                    chunk_metadata={"source": "document_processing"},
+                    chunk_metadata={"source": "document_processing", "has_embedding": embedding is not None},
                 )
                 db_chunks.append(db_chunk)
 
-                # Prepare Qdrant point
-                qdrant_points.append({
-                    "id": str(db_chunk.id),  # Will be set after DB insert
-                    "vector": embedding,
-                    "payload": {
-                        "document_id": str(document.id),
-                        "chunk_index": chunk["chunk_index"],
-                        "content": chunk["content"],
-                        "filename": document.filename,
-                        "doc_metadata": document.doc_metadata,
-                    }
-                })
+                # Only add to Qdrant if embedding exists
+                if embedding is not None:
+                    qdrant_points.append({
+                        "id": str(db_chunk.id),  # Will be set after DB insert
+                        "vector": embedding,
+                        "payload": {
+                            "document_id": str(document.id),
+                            "chunk_index": chunk["chunk_index"],
+                            "content": chunk["content"],
+                            "filename": document.filename,
+                            "doc_metadata": document.doc_metadata,
+                        }
+                    })
 
             # Save chunks to database
             db.add_all(db_chunks)
@@ -210,22 +259,32 @@ class DocumentService:
             for db_chunk in db_chunks:
                 await db.refresh(db_chunk)
 
-            # Update Qdrant point IDs
-            for i, db_chunk in enumerate(db_chunks):
-                qdrant_points[i]["id"] = str(db_chunk.id)
+            # Update Qdrant point IDs and upsert if we have any embeddings
+            if qdrant_points:
+                for i, db_chunk in enumerate([c for c in db_chunks if c.embedding is not None]):
+                    qdrant_points[i]["id"] = str(db_chunk.id)
 
-            # Upsert to Qdrant
-            success = await qdrant_store.upsert_points(
-                collection_name=settings.QDRANT_COLLECTION_NAME,
-                points=qdrant_points,
-                tenant_id=str(tenant_id),
-            )
+                # Upsert to Qdrant
+                success = await qdrant_store.upsert_points(
+                    collection_name=settings.QDRANT_COLLECTION_NAME,
+                    points=qdrant_points,
+                    tenant_id=str(tenant_id),
+                )
 
-            if not success:
-                raise Exception("Failed to upsert points to Qdrant")
+                if not success:
+                    logger.warning(
+                        "qdrant_upsert_failed_document_saved_anyway",
+                        document_id=str(document_id),
+                    )
+            else:
+                logger.info(
+                    "document_saved_without_vector_search",
+                    document_id=str(document_id),
+                    message="No embeddings generated - vector search will not work for this document",
+                )
 
-            # Generate document-level embedding (average of chunks or first chunk)
-            if embeddings and embeddings[0]:
+            # Generate document-level embedding if available
+            if embeddings and len(embeddings) > 0 and embeddings[0]:
                 document.embedding = embeddings[0]
 
             # Update document status
@@ -244,18 +303,28 @@ class DocumentService:
 
         except Exception as e:
             # Mark document as failed
-            await db.execute(
-                select(Document).where(Document.id == document_id)
-            )
-            result = await db.execute(
-                select(Document).where(Document.id == document_id)
-            )
-            doc = result.scalar_one_or_none()
+            try:
+                await db.rollback()  # Rollback any pending transaction
+                result = await db.execute(
+                    select(Document).where(
+                        and_(
+                            Document.id == document_id,
+                            Document.tenant_id == tenant_id,
+                        )
+                    )
+                )
+                doc = result.scalar_one_or_none()
 
-            if doc:
-                doc.status = DocumentStatus.FAILED
-                doc.error_message = str(e)
-                await db.commit()
+                if doc:
+                    doc.status = DocumentStatus.FAILED
+                    doc.error_message = str(e)
+                    await db.commit()
+            except Exception as update_error:
+                logger.error(
+                    "failed_to_update_document_status",
+                    document_id=str(document_id),
+                    error=str(update_error),
+                )
 
             logger.error(
                 "document_processing_failed",

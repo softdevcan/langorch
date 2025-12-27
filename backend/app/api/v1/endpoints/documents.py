@@ -117,8 +117,8 @@ async def extract_text_from_file(file_path: str, file_type: str) -> str:
     description="Upload a document for processing and semantic search",
 )
 async def upload_document(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(..., description="Document file to upload"),
-    background_tasks: BackgroundTasks = BackgroundTasks(),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -228,32 +228,50 @@ async def process_document_background(document_id: UUID, tenant_id: UUID):
         tenant_id: Tenant UUID
     """
     from app.core.database import async_session_maker
+    import traceback
 
-    async with async_session_maker() as db:
-        try:
-            success = await DocumentService.process_document(
-                db=db,
-                document_id=document_id,
-                tenant_id=tenant_id,
-            )
+    logger.info(
+        "document_background_task_started",
+        document_id=str(document_id),
+        tenant_id=str(tenant_id),
+    )
 
-            if success:
-                logger.info(
-                    "document_processed_background",
-                    document_id=str(document_id),
+    try:
+        async with async_session_maker() as db:
+            try:
+                success = await DocumentService.process_document(
+                    db=db,
+                    document_id=document_id,
+                    tenant_id=tenant_id,
                 )
-            else:
+
+                if success:
+                    logger.info(
+                        "document_processed_background",
+                        document_id=str(document_id),
+                    )
+                else:
+                    logger.error(
+                        "document_processing_failed_background",
+                        document_id=str(document_id),
+                    )
+
+            except Exception as e:
                 logger.error(
-                    "document_processing_failed_background",
+                    "document_background_task_processing_error",
                     document_id=str(document_id),
+                    error=str(e),
+                    traceback=traceback.format_exc(),
                 )
+                raise
 
-        except Exception as e:
-            logger.error(
-                "document_background_task_error",
-                document_id=str(document_id),
-                error=str(e),
-            )
+    except Exception as e:
+        logger.error(
+            "document_background_task_session_error",
+            document_id=str(document_id),
+            error=str(e),
+            traceback=traceback.format_exc(),
+        )
 
 
 @router.get(
@@ -448,3 +466,143 @@ async def get_document_chunks(
         total=len(chunks),
         document_id=document_id,
     )
+
+
+@router.post(
+    "/{document_id}/reprocess",
+    response_model=MessageResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Reprocess document with current provider",
+    description="Delete existing chunks and re-embed document using current tenant's embedding provider settings",
+)
+async def reprocess_document(
+    document_id: UUID,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Reprocess document with current embedding provider
+
+    This will:
+    1. Delete existing document chunks and vector embeddings
+    2. Re-chunk the document text
+    3. Generate new embeddings using the current tenant's provider settings
+    4. Store new embeddings in vector database
+
+    Useful when:
+    - Switching between embedding providers (e.g., OpenAI to Ollama)
+    - Changing embedding models
+    - Fixing corrupted embeddings
+
+    - **document_id**: Document UUID
+
+    Returns 202 Accepted - processing happens in background
+    """
+    from sqlalchemy import select, and_, delete
+    from app.models.document_chunk import DocumentChunk
+    from app.core.qdrant_client import qdrant_store
+
+    try:
+        # Verify document exists and belongs to tenant
+        document = await DocumentService.get_document(
+            db=db,
+            document_id=document_id,
+            tenant_id=current_user.tenant_id,
+        )
+
+        if not document:
+            raise http_404_not_found(detail=f"Document {document_id} not found")
+
+        # Check if document has content to reprocess
+        if not document.content:
+            raise http_400_bad_request(
+                detail="Document has no content to reprocess"
+            )
+
+        logger.info(
+            "reprocessing_document_requested",
+            document_id=str(document_id),
+            tenant_id=str(current_user.tenant_id),
+            user_id=str(current_user.id),
+        )
+
+        # Get existing chunks to delete from Qdrant
+        result = await db.execute(
+            select(DocumentChunk)
+            .where(
+                and_(
+                    DocumentChunk.document_id == document_id,
+                    DocumentChunk.tenant_id == current_user.tenant_id,
+                )
+            )
+        )
+        existing_chunks = result.scalars().all()
+        chunk_ids = [str(chunk.id) for chunk in existing_chunks]
+
+        # Delete from Qdrant
+        if chunk_ids:
+            logger.info(
+                "deleting_existing_vectors_from_qdrant",
+                document_id=str(document_id),
+                chunk_count=len(chunk_ids),
+            )
+            await qdrant_store.delete_points(
+                collection_name=settings.QDRANT_COLLECTION_NAME,
+                point_ids=chunk_ids,
+                tenant_id=str(current_user.tenant_id),
+            )
+
+        # Delete existing chunks from database
+        await db.execute(
+            delete(DocumentChunk).where(
+                and_(
+                    DocumentChunk.document_id == document_id,
+                    DocumentChunk.tenant_id == current_user.tenant_id,
+                )
+            )
+        )
+        await db.commit()
+
+        logger.info(
+            "existing_chunks_deleted",
+            document_id=str(document_id),
+            deleted_count=len(chunk_ids),
+        )
+
+        # Update document status to PROCESSING
+        document.status = DocumentStatus.PROCESSING
+        await db.commit()
+
+        # Queue background processing
+        background_tasks.add_task(
+            DocumentService.process_document,
+            db=db,
+            document_id=document_id,
+            tenant_id=current_user.tenant_id,
+        )
+
+        logger.info(
+            "document_reprocessing_queued",
+            document_id=str(document_id),
+            tenant_id=str(current_user.tenant_id),
+        )
+
+        return MessageResponse(
+            message=f"Document reprocessing queued. Old chunks deleted, new embeddings will be generated with current provider settings."
+        )
+
+    except NotFoundException as e:
+        raise http_404_not_found(detail=e.detail or e.message)
+    except ValidationException as e:
+        raise http_400_bad_request(detail=e.detail or e.message)
+    except Exception as e:
+        logger.error(
+            "document_reprocess_failed",
+            document_id=str(document_id),
+            error=str(e),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to queue document reprocessing: {str(e)}"
+        )

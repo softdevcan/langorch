@@ -153,15 +153,32 @@ class EmbeddingService:
             Embedding vector (list of floats) or None if failed
         """
         try:
-            # Get tenant's OpenAI API key from Vault
-            api_key = await vault_client.get_tenant_secret(
-                tenant_id=tenant_id,
-                secret_key="openai_api_key",
-            )
+            # Try to get tenant's OpenAI API key from Vault
+            api_key = None
+            try:
+                api_key = await vault_client.get_tenant_secret(
+                    tenant_id=tenant_id,
+                    secret_key="openai_api_key",
+                )
+            except Exception as vault_error:
+                logger.warning(
+                    "vault_api_key_retrieval_failed_using_fallback",
+                    tenant_id=tenant_id,
+                    error=str(vault_error),
+                )
+
+            # Fallback to global API key from settings
+            if not api_key:
+                api_key = settings.OPENAI_API_KEY
+                if api_key:
+                    logger.info(
+                        "using_fallback_openai_api_key",
+                        tenant_id=tenant_id,
+                    )
 
             if not api_key:
                 logger.error(
-                    "tenant_openai_api_key_not_found",
+                    "openai_api_key_not_found",
                     tenant_id=tenant_id,
                 )
                 raise ValueError(f"OpenAI API key not found for tenant {tenant_id}")
@@ -214,15 +231,32 @@ class EmbeddingService:
             List of embedding vectors (same order as input)
         """
         try:
-            # Get tenant's OpenAI API key from Vault
-            api_key = await vault_client.get_tenant_secret(
-                tenant_id=tenant_id,
-                secret_key="openai_api_key",
-            )
+            # Try to get tenant's OpenAI API key from Vault
+            api_key = None
+            try:
+                api_key = await vault_client.get_tenant_secret(
+                    tenant_id=tenant_id,
+                    secret_key="openai_api_key",
+                )
+            except Exception as vault_error:
+                logger.warning(
+                    "vault_api_key_retrieval_failed_using_fallback",
+                    tenant_id=tenant_id,
+                    error=str(vault_error),
+                )
+
+            # Fallback to global API key from settings
+            if not api_key:
+                api_key = settings.OPENAI_API_KEY
+                if api_key:
+                    logger.info(
+                        "using_fallback_openai_api_key_batch",
+                        tenant_id=tenant_id,
+                    )
 
             if not api_key:
                 logger.error(
-                    "tenant_openai_api_key_not_found",
+                    "openai_api_key_not_found",
                     tenant_id=tenant_id,
                 )
                 return [None] * len(texts)

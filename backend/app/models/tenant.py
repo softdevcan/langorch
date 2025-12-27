@@ -3,7 +3,8 @@ Tenant model - Multi-tenant organization
 """
 from sqlalchemy import String, Boolean, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from typing import List
+from sqlalchemy.dialects.postgresql import JSONB
+from typing import List, Optional
 
 from app.models.base import BaseModel
 
@@ -50,6 +51,20 @@ class Tenant(BaseModel):
         Text,
         nullable=True,
         comment="Tenant-specific settings (JSON)"
+    )
+
+    embedding_provider: Mapped[str] = mapped_column(
+        String(50),
+        default="openai",
+        nullable=False,
+        index=True,
+        comment="Embedding provider type (openai, ollama, claude, gemini)"
+    )
+
+    embedding_config: Mapped[Optional[dict]] = mapped_column(
+        JSONB,
+        nullable=True,
+        comment="Provider-specific configuration (API keys, URLs, model settings)"
     )
 
     # Relationships

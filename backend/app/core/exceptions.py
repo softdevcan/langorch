@@ -44,6 +44,14 @@ class TenantIsolationException(LangOrchException):
 
 
 # HTTP Exception helpers
+def http_400_bad_request(detail: str = "Bad request") -> HTTPException:
+    """Return 400 Bad Request exception"""
+    return HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=detail,
+    )
+
+
 def http_401_unauthorized(detail: str = "Could not validate credentials") -> HTTPException:
     """Return 401 Unauthorized exception"""
     return HTTPException(

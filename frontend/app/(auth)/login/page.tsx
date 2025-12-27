@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -20,7 +19,6 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const router = useRouter();
   const login = useAuthStore((state) => state.login);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,8 +37,11 @@ export default function LoginPage() {
       toast.success("Login successful!");
       // Use window.location for hard navigation to ensure state is fresh
       window.location.href = "/dashboard";
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Login failed. Please try again.");
+    } catch (error) {
+      const errorMessage = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || "Login failed. Please try again."
+        : "Login failed. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

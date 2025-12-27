@@ -82,8 +82,11 @@ export function EditUserDialog({ user, open, onOpenChange, onSuccess }: EditUser
       toast.success("User updated successfully!");
       onSuccess();
       onOpenChange(false);
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Failed to update user");
+    } catch (error) {
+      const errorMessage = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || "Failed to update user"
+        : "Failed to update user";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

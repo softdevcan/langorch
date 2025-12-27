@@ -64,8 +64,11 @@ export function CreateUserDialog({ open, onOpenChange, onSuccess }: CreateUserDi
       reset();
       onSuccess();
       onOpenChange(false);
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Failed to create user");
+    } catch (error) {
+      const errorMessage = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || "Failed to create user"
+        : "Failed to create user";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

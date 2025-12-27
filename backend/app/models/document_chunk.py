@@ -62,11 +62,11 @@ class DocumentChunk(BaseModel):
         comment="Number of tokens in this chunk"
     )
 
-    # Embedding vector
-    embedding: Mapped[Vector] = mapped_column(
+    # Embedding vector (optional - can be generated later)
+    embedding: Mapped[Optional[Vector]] = mapped_column(
         Vector(1536),  # OpenAI ada-002/ada-003 dimension
-        nullable=False,
-        comment="Chunk embedding vector (1536 dimensions)"
+        nullable=True,
+        comment="Chunk embedding vector (1536 dimensions) - nullable for documents without embeddings"
     )
 
     # Chunk-specific metadata

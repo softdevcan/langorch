@@ -67,7 +67,7 @@ def upgrade() -> None:
         sa.Column('chunk_index', sa.Integer(), nullable=False, comment='Sequential index within the document (0-based)'),
         sa.Column('content', sa.Text(), nullable=False, comment='Chunk text content'),
         sa.Column('token_count', sa.Integer(), nullable=False, comment='Number of tokens in this chunk'),
-        sa.Column('embedding', sa.TEXT(), nullable=False, comment='Chunk embedding vector (1536 dimensions)'),  # Will use vector type
+        sa.Column('embedding', sa.TEXT(), nullable=True, comment='Chunk embedding vector (1536 dimensions) - nullable for documents without embeddings'),  # Will use vector type
         sa.Column('metadata', JSONB(), nullable=True, comment='Chunk-specific metadata (page_number, section, etc.)'),
         sa.Column('start_char', sa.Integer(), nullable=True, comment='Start character position in original document'),
         sa.Column('end_char', sa.Integer(), nullable=True, comment='End character position in original document'),

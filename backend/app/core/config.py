@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "text-embedding-3-small"  # OpenAI embedding model
     EMBEDDING_DIMENSIONS: int = 1536  # Embedding vector dimensions
 
+    # OpenAI (Fallback when Vault is not available)
+    OPENAI_API_KEY: str = ""  # Fallback API key for development
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

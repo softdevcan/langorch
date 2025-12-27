@@ -8,7 +8,8 @@ import {
   LayoutDashboard,
   Settings,
   Building2,
-  LogOut
+  LogOut,
+  FileText
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { UserRole } from "@/lib/types";
@@ -25,6 +26,11 @@ const navItems: NavItem[] = [
     title: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Documents",
+    href: "/dashboard/documents",
+    icon: FileText,
   },
   {
     title: "Users",

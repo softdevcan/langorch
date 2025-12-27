@@ -50,7 +50,7 @@ export default function DashboardPage() {
           Welcome back, {user?.full_name?.split(" ")[0] || "User"}!
         </h2>
         <p className="text-muted-foreground">
-          Here's an overview of your LangOrch workspace
+          Here&apos;s an overview of your LangOrch workspace
         </p>
       </div>
 

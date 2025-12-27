@@ -48,7 +48,7 @@ export interface Tenant {
   id: string;
   name: string;
   slug: string;
-  settings: Record<string, any>;
+  settings: Record<string, unknown>;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -66,4 +66,113 @@ export interface PaginatedResponse<T> {
 export interface ApiError {
   detail: string;
   status_code?: number;
+}
+
+// Document Types
+export enum DocumentStatus {
+  UPLOADING = "uploading",
+  PROCESSING = "processing",
+  COMPLETED = "completed",
+  FAILED = "failed",
+  DELETED = "deleted",
+}
+
+export interface Document {
+  id: string;
+  tenant_id: string;
+  user_id: string | null;
+  filename: string;
+  file_path: string;
+  file_size: number;
+  file_type: string;
+  status: DocumentStatus;
+  content: string | null;
+  chunk_count: number;
+  error_message: string | null;
+  doc_metadata: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentUploadResponse {
+  document_id: string;
+  filename: string;
+  file_size: number;
+  status: DocumentStatus;
+  message: string;
+}
+
+export interface DocumentSearchRequest {
+  query: string;
+  limit?: number;
+  score_threshold?: number;
+  filter_metadata?: Record<string, unknown>;
+}
+
+export interface SearchResult {
+  chunk_id: string;
+  document_id: string;
+  document_filename: string;
+  content: string;
+  score: number;
+  chunk_index: number;
+  chunk_metadata: Record<string, unknown> | null;
+  doc_metadata: Record<string, unknown> | null;
+}
+
+export interface DocumentSearchResponse {
+  query: string;
+  results: SearchResult[];
+  total_results: number;
+  search_time_ms: number;
+}
+
+export interface DocumentChunk {
+  id: string;
+  document_id: string;
+  tenant_id: string;
+  chunk_index: number;
+  content: string;
+  token_count: number;
+  chunk_metadata: Record<string, unknown> | null;
+  start_char: number | null;
+  end_char: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Embedding Provider Types
+export enum ProviderType {
+  OPENAI = "openai",
+  OLLAMA = "ollama",
+  CLAUDE = "claude",
+  GEMINI = "gemini",
+}
+
+export interface EmbeddingProviderUpdate {
+  provider: ProviderType;
+  model: string;
+  api_key?: string;
+  base_url?: string;
+}
+
+export interface EmbeddingProviderResponse {
+  provider: ProviderType;
+  model: string;
+  dimensions: number;
+  base_url?: string;
+  has_api_key: boolean;
+}
+
+export interface EmbeddingProviderTest {
+  provider: ProviderType;
+  model: string;
+  api_key?: string;
+  base_url?: string;
+}
+
+export interface EmbeddingProviderTestResponse {
+  success: boolean;
+  message: string;
+  dimensions?: number;
 }

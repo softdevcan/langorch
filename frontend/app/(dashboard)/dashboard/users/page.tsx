@@ -36,8 +36,11 @@ export default function UsersPage() {
     try {
       const data = await usersApi.list();
       setUsers(data);
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Failed to fetch users");
+    } catch (error) {
+      const errorMessage = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || "Failed to fetch users"
+        : "Failed to fetch users";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -66,8 +69,11 @@ export default function UsersPage() {
       fetchUsers();
       setDeleteDialogOpen(false);
       setSelectedUser(null);
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Failed to delete user");
+    } catch (error) {
+      const errorMessage = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || "Failed to delete user"
+        : "Failed to delete user";
+      toast.error(errorMessage);
     }
   };
 

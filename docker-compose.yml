@@ -65,7 +65,7 @@ services:
     profiles:
       - full  # Sadece "docker-compose --profile full up" ile başlatılır
 
-  # Ollama (Local LLM - Optional)
+  # Ollama (Local Embedding Models)
   ollama:
     image: ollama/ollama:latest
     container_name: langorch_ollama
@@ -75,8 +75,15 @@ services:
       - ./data/ollama:/root/.ollama
     networks:
       - langorch_network
-    profiles:
-      - full
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    # Remove profiles to make it run by default
+    # profiles:
+    #   - full
 
 networks:
   langorch_network:
