@@ -1,60 +1,145 @@
 @import "tailwindcss";
 
-@theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@layer base {
+  :root {
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
+    --radius: 0.5rem;
 
-  /* Light theme variables */
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222.2 84% 4.9%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222.2 84% 4.9%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(222.2 84% 4.9%);
-  --color-primary: hsl(221.2 83.2% 53.3%);
-  --color-primary-foreground: hsl(210 40% 98%);
-  --color-secondary: hsl(210 40% 96.1%);
-  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
-  --color-accent: hsl(210 40% 96.1%);
-  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(214.3 31.8% 91.4%);
-  --color-input: hsl(214.3 31.8% 91.4%);
-  --color-ring: hsl(221.2 83.2% 53.3%);
-  --radius: 0.5rem;
-}
+    /* Light theme - Base colors */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
 
-.dark {
-  --color-background: hsl(222.2 84% 4.9%);
-  --color-foreground: hsl(210 40% 98%);
-  --color-card: hsl(222.2 84% 4.9%);
-  --color-card-foreground: hsl(210 40% 98%);
-  --color-popover: hsl(222.2 84% 4.9%);
-  --color-popover-foreground: hsl(210 40% 98%);
-  --color-primary: hsl(217.2 91.2% 59.8%);
-  --color-primary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-secondary: hsl(217.2 32.6% 17.5%);
-  --color-secondary-foreground: hsl(210 40% 98%);
-  --color-muted: hsl(217.2 32.6% 17.5%);
-  --color-muted-foreground: hsl(215 20.2% 65.1%);
-  --color-accent: hsl(217.2 32.6% 17.5%);
-  --color-accent-foreground: hsl(210 40% 98%);
-  --color-destructive: hsl(0 62.8% 30.6%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(217.2 32.6% 17.5%);
-  --color-input: hsl(217.2 32.6% 17.5%);
-  --color-ring: hsl(224.3 76.3% 48%);
+    /* Light theme - Extended semantic colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --success-light: 142 52% 96%;
+    --success-light-foreground: 142 71% 25%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --warning-light: 48 96% 95%;
+    --warning-light-foreground: 32 95% 30%;
+
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+    --info-light: 204 94% 96%;
+    --info-light-foreground: 199 89% 28%;
+
+    /* Light theme - Status colors */
+    --status-pending: 48 96% 95%;
+    --status-pending-foreground: 32 95% 30%;
+    --status-processing: 204 94% 96%;
+    --status-processing-foreground: 199 89% 28%;
+    --status-completed: 142 52% 96%;
+    --status-completed-foreground: 142 71% 25%;
+    --status-failed: 0 93% 96%;
+    --status-failed-foreground: 0 84% 40%;
+
+    /* Light theme - Role colors */
+    --role-super-admin: 280 65% 96%;
+    --role-super-admin-foreground: 280 87% 35%;
+    --role-admin: 221 83% 96%;
+    --role-admin-foreground: 221 83% 35%;
+    --role-user: 210 40% 96.1%;
+    --role-user-foreground: 215.4 16.3% 46.9%;
+
+    /* Active state background for sidebar/tabs */
+    --active-bg: 221 83% 96%;        /* Açık mavi arka plan - active state için */
+    --active-fg: 221 83% 35%;        /* Koyu mavi text - active state için */
+  }
+
+  .dark {
+    /* Dark theme - Modern Black-Gray palette with depth layers */
+    --background: 0 0% 7%;           /* Ana arka plan - neredeyse siyah (#121212) */
+    --foreground: 0 0% 95%;          /* Ana text - beyaza yakın */
+    --card: 0 0% 12%;                /* Card'lar - koyu gri (#1E1E1E) */
+    --card-foreground: 0 0% 95%;     /* Card text */
+    --popover: 0 0% 10%;             /* Popover - biraz daha koyu */
+    --popover-foreground: 0 0% 95%;  /* Popover text */
+    --primary: 217 91% 60%;          /* Parlak mavi - vurgu rengi */
+    --primary-foreground: 0 0% 100%; /* Primary text - beyaz */
+    --secondary: 0 0% 15%;           /* Secondary - orta gri */
+    --secondary-foreground: 0 0% 95%;/* Secondary text */
+    --muted: 0 0% 15%;               /* Muted areas - orta gri */
+    --muted-foreground: 0 0% 65%;    /* Muted text - soluk gri */
+    --accent: 0 0% 22%;              /* Accent/hover - daha belirgin (18% → 22%) */
+    --accent-foreground: 0 0% 95%;   /* Accent text */
+    --destructive: 0 72% 55%;        /* Kırmızı - parlak */
+    --destructive-foreground: 0 0% 100%; /* Destructive text */
+    --border: 0 0% 20%;              /* Border - daha açık gri (görünür) */
+    --input: 0 0% 18%;               /* Input background */
+    --ring: 217 91% 60%;             /* Focus ring - primary ile aynı */
+
+    /* Active state background for sidebar/tabs */
+    --active-bg: 217 91% 15%;        /* Koyu mavi arka plan - active state için */
+    --active-fg: 217 91% 70%;        /* Açık mavi text - active state için */
+
+    /* Dark theme - Extended semantic colors */
+    --success: 142 71% 50%;              /* Parlak yeşil */
+    --success-foreground: 0 0% 100%;     /* Beyaz text */
+    --success-light: 142 50% 15%;        /* Koyu yeşil background */
+    --success-light-foreground: 142 71% 75%; /* Açık yeşil text */
+
+    --warning: 38 92% 65%;               /* Parlak turuncu */
+    --warning-foreground: 0 0% 0%;       /* Siyah text */
+    --warning-light: 48 80% 15%;         /* Koyu turuncu background */
+    --warning-light-foreground: 48 96% 70%; /* Açık turuncu text */
+
+    --info: 199 89% 60%;                 /* Parlak mavi */
+    --info-foreground: 0 0% 0%;          /* Siyah text */
+    --info-light: 204 80% 15%;           /* Koyu mavi background */
+    --info-light-foreground: 204 94% 70%; /* Açık mavi text */
+
+    /* Dark theme - Status colors */
+    --status-pending: 48 80% 15%;        /* Koyu sarı/turuncu */
+    --status-pending-foreground: 48 96% 70%; /* Açık sarı text */
+    --status-processing: 204 80% 15%;    /* Koyu mavi */
+    --status-processing-foreground: 204 94% 70%; /* Açık mavi text */
+    --status-completed: 142 50% 15%;     /* Koyu yeşil */
+    --status-completed-foreground: 142 71% 75%; /* Açık yeşil text */
+    --status-failed: 0 70% 20%;          /* Koyu kırmızı */
+    --status-failed-foreground: 0 90% 75%; /* Açık kırmızı text */
+
+    /* Dark theme - Role colors */
+    --role-super-admin: 280 60% 18%;     /* Koyu mor */
+    --role-super-admin-foreground: 280 87% 75%; /* Açık mor text */
+    --role-admin: 221 60% 18%;           /* Koyu mavi */
+    --role-admin-foreground: 221 83% 75%; /* Açık mavi text */
+    --role-user: 0 0% 18%;               /* Koyu gri */
+    --role-user-foreground: 0 0% 75%;    /* Açık gri text */
+  }
 }
 
 * {
-  border-color: var(--color-border);
+  border-color: hsl(var(--border));
 }
 
 body {
   font-family: var(--font-sans), system-ui, sans-serif;
-  background-color: var(--color-background);
-  color: var(--color-foreground);
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+/* Active tab styling */
+[role="tab"][data-state="active"] {
+  background-color: hsl(var(--active-bg)) !important;
+  color: hsl(var(--active-fg)) !important;
 }

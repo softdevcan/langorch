@@ -31,13 +31,13 @@ interface UserTableProps {
 const getRoleBadgeColor = (role: UserRole) => {
   switch (role) {
     case UserRole.SUPER_ADMIN:
-      return "bg-purple-100 text-purple-800";
+      return "bg-role-super-admin text-role-super-admin-foreground";
     case UserRole.TENANT_ADMIN:
-      return "bg-blue-100 text-blue-800";
+      return "bg-role-admin text-role-admin-foreground";
     case UserRole.USER:
-      return "bg-gray-100 text-gray-800";
+      return "bg-role-user text-role-user-foreground";
     default:
-      return "bg-gray-100 text-gray-800";
+      return "bg-role-user text-role-user-foreground";
   }
 };
 
@@ -111,7 +111,7 @@ export function UserTable({ users, onEdit, onDelete, currentUserId }: UserTableP
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onDelete(user)}
-                        className="text-red-600"
+                        className="text-destructive focus:text-destructive"
                         disabled={user.id === currentUserId}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />

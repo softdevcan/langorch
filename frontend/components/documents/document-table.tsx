@@ -24,28 +24,28 @@ const getStatusBadge = (status: DocumentStatus) => {
   switch (status) {
     case DocumentStatus.UPLOADING:
       return (
-        <Badge variant="secondary" className="gap-1">
+        <Badge className="gap-1 bg-status-pending text-status-pending-foreground">
           <Loader2 className="h-3 w-3 animate-spin" />
           Uploading
         </Badge>
       );
     case DocumentStatus.PROCESSING:
       return (
-        <Badge variant="secondary" className="gap-1">
+        <Badge className="gap-1 bg-status-processing text-status-processing-foreground">
           <Loader2 className="h-3 w-3 animate-spin" />
           Processing
         </Badge>
       );
     case DocumentStatus.COMPLETED:
       return (
-        <Badge variant="default" className="gap-1 bg-green-100 text-green-800">
+        <Badge className="gap-1 bg-status-completed text-status-completed-foreground">
           <CheckCircle className="h-3 w-3" />
           Completed
         </Badge>
       );
     case DocumentStatus.FAILED:
       return (
-        <Badge variant="destructive" className="gap-1">
+        <Badge className="gap-1 bg-status-failed text-status-failed-foreground">
           <AlertCircle className="h-3 w-3" />
           Failed
         </Badge>

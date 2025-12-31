@@ -358,8 +358,8 @@ export function EmbeddingProviderSettings() {
           <div
             className={`flex items-center gap-2 rounded-md border p-3 ${
               testResult.success
-                ? "border-green-200 bg-green-50 text-green-900"
-                : "border-red-200 bg-red-50 text-red-900"
+                ? "bg-success-light text-success-light-foreground border-success-light-foreground/20"
+                : "bg-status-failed text-status-failed-foreground border-status-failed-foreground/20"
             }`}
           >
             {testResult.success ? (

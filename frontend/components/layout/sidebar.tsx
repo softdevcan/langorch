@@ -89,11 +89,15 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-200 border-l-[4px] border-l-transparent",
                   isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "shadow-lg border-l-primary"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 )}
+                style={isActive ? {
+                  backgroundColor: 'hsl(var(--active-bg))',
+                  color: 'hsl(var(--active-fg))'
+                } : undefined}
               >
                 <Icon className="h-5 w-5" />
                 {t(item.titleKey as any)}

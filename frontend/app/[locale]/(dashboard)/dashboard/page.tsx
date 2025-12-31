@@ -71,7 +71,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-muted-foreground">
                   {stat.description}
                 </p>
-                <p className="text-xs text-green-600 mt-1">
+                <p className="text-xs text-success mt-1">
                   {stat.trend} from last month
                 </p>
               </CardContent>
