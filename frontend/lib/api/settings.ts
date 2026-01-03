@@ -4,6 +4,8 @@ import type {
   EmbeddingProviderResponse,
   EmbeddingProviderTest,
   EmbeddingProviderTestResponse,
+  LLMProviderUpdate,
+  LLMProviderResponse,
 } from "../types";
 
 export const settingsApi = {
@@ -38,6 +40,29 @@ export const settingsApi = {
   ): Promise<EmbeddingProviderTestResponse> => {
     const response = await apiClient.post<EmbeddingProviderTestResponse>(
       "/api/v1/settings/embedding-provider/test",
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Get current tenant's LLM provider settings
+   */
+  getLLMProvider: async (): Promise<LLMProviderResponse> => {
+    const response = await apiClient.get<LLMProviderResponse>(
+      "/api/v1/settings/llm-provider"
+    );
+    return response.data;
+  },
+
+  /**
+   * Update tenant's LLM provider settings
+   */
+  updateLLMProvider: async (
+    data: LLMProviderUpdate
+  ): Promise<LLMProviderResponse> => {
+    const response = await apiClient.put<LLMProviderResponse>(
+      "/api/v1/settings/llm-provider",
       data
     );
     return response.data;

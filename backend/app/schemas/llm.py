@@ -51,7 +51,7 @@ class LLMMessageResponse(BaseModel):
 
 class DocumentSummarizeRequest(BaseModel):
     document_id: UUID
-    model: Optional[str] = "gpt-4"
+    model: Optional[str] = None
     max_length: Optional[int] = 500
 
 
@@ -63,10 +63,17 @@ class DocumentSummarizeResponse(BaseModel):
     cost_estimate: Optional[Decimal]
 
 
+class DocumentOperationStartResponse(BaseModel):
+    """Response when operation is started in background"""
+    operation_id: UUID
+    status: str  # 'processing'
+    message: str
+
+
 class DocumentAskRequest(BaseModel):
     document_id: UUID
     question: str
-    model: Optional[str] = "gpt-4"
+    model: Optional[str] = None
     include_chunks: Optional[bool] = True
     max_chunks: Optional[int] = 5
 
@@ -83,7 +90,7 @@ class DocumentAskResponse(BaseModel):
 class DocumentTransformRequest(BaseModel):
     document_id: UUID
     instruction: str
-    model: Optional[str] = "gpt-4"
+    model: Optional[str] = None
     output_format: Optional[str] = "text"  # 'text', 'markdown', 'json'
 
 

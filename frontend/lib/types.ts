@@ -177,12 +177,34 @@ export interface EmbeddingProviderTestResponse {
   dimensions?: number;
 }
 
+// ====== LLM Provider Types ======
+
+export interface LLMProviderUpdate {
+  provider: string;
+  model: string;
+  api_key?: string;
+  base_url?: string;
+}
+
+export interface LLMProviderResponse {
+  provider: string;
+  model: string;
+  base_url?: string;
+  has_api_key: boolean;
+}
+
 // ====== LLM Types ======
 
 export interface DocumentSummarizeRequest {
   document_id: string;
   model?: string;
   max_length?: number;
+}
+
+export interface DocumentOperationStartResponse {
+  operation_id: string;
+  status: string;
+  message: string;
 }
 
 export interface DocumentSummarizeResponse {

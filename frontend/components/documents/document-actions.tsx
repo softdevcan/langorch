@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
 import { FileText, MessageSquare, Wand2, Loader2 } from "lucide-react";
 import { llmApi } from "@/lib/api/llm";
+import { settingsApi } from "@/lib/api/settings";
 import { toast } from "sonner";
 import type { Document } from "@/lib/types";
 
@@ -28,13 +28,30 @@ export function DocumentActions({ document }: DocumentActionsProps) {
   const [transformedContent, setTransformedContent] = useState<string>("");
   const [transformOpen, setTransformOpen] = useState(false);
 
+  // LLM model from settings (default: llama3.2)
+  const [llmModel, setLlmModel] = useState<string>("llama3.2");
+
+  // Fetch LLM provider settings on component mount
+  useEffect(() => {
+    const fetchLLMSettings = async () => {
+      try {
+        const settings = await settingsApi.getLLMProvider();
+        setLlmModel(settings.model);
+      } catch (error) {
+        console.error("Failed to fetch LLM settings:", error);
+        // Keep default model if fetch fails
+      }
+    };
+    fetchLLMSettings();
+  }, []);
+
   // Summarize
   const handleSummarize = async () => {
     setLoading(true);
     try {
       const result = await llmApi.summarizeDocument({
         document_id: document.id,
-        model: "gpt-4",
+        model: llmModel,
         max_length: 500
       });
       setSummary(result.summary);
@@ -58,7 +75,7 @@ export function DocumentActions({ document }: DocumentActionsProps) {
       const result = await llmApi.askQuestion({
         document_id: document.id,
         question,
-        model: "gpt-4",
+        model: llmModel,
         max_chunks: 5
       });
       setAnswer(result.answer);
@@ -82,7 +99,7 @@ export function DocumentActions({ document }: DocumentActionsProps) {
       const result = await llmApi.transformDocument({
         document_id: document.id,
         instruction,
-        model: "gpt-4",
+        model: llmModel,
         output_format: "text"
       });
       setTransformedContent(result.transformed_content);
@@ -121,9 +138,9 @@ export function DocumentActions({ document }: DocumentActionsProps) {
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
           ) : summary ? (
-            <Card className="p-4">
+            <div className="p-4 rounded-lg border border-border bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
               <p className="text-sm whitespace-pre-wrap">{summary}</p>
-            </Card>
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground">Click "Summarize" to generate summary</p>
           )}
@@ -159,10 +176,10 @@ export function DocumentActions({ document }: DocumentActionsProps) {
               Ask
             </Button>
             {answer && (
-              <Card className="p-4 mt-4">
-                <Label className="mb-2 block">Answer:</Label>
+              <div className="p-4 mt-4 rounded-lg border border-border bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+                <Label className="mb-2 block font-semibold">Answer:</Label>
                 <p className="text-sm whitespace-pre-wrap">{answer}</p>
-              </Card>
+              </div>
             )}
           </div>
         </DialogContent>
@@ -197,10 +214,10 @@ export function DocumentActions({ document }: DocumentActionsProps) {
               Transform
             </Button>
             {transformedContent && (
-              <Card className="p-4 mt-4">
-                <Label className="mb-2 block">Result:</Label>
+              <div className="p-4 mt-4 rounded-lg border border-border bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+                <Label className="mb-2 block font-semibold">Result:</Label>
                 <p className="text-sm whitespace-pre-wrap">{transformedContent}</p>
-              </Card>
+              </div>
             )}
           </div>
         </DialogContent>

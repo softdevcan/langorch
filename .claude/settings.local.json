@@ -4,7 +4,9 @@
       "Bash(dir:*)",
       "Bash(ls:*)",
       "Bash(python -m alembic revision:*)",
-      "Bash(python -m alembic:*)"
+      "Bash(python -m alembic:*)",
+      "Bash(cat:*)",
+      "Bash(C:UserscakyildirimPycharmProjectslangorchvenvScriptsalembic.exe current)"
     ]
   }
 }

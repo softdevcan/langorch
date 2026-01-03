@@ -16,6 +16,8 @@ from app.schemas.settings import (
     EmbeddingProviderResponse,
     EmbeddingProviderTest,
     EmbeddingProviderTestResponse,
+    LLMProviderUpdate,
+    LLMProviderResponse,
 )
 from app.services.embedding_providers import ProviderFactory, ProviderType
 
@@ -302,4 +304,213 @@ async def test_embedding_provider(
             success=False,
             message=f"Connection test failed: {str(e)}",
             dimensions=None,
+        )
+
+
+# ====== LLM Provider Settings ======
+
+@router.get("/llm-provider", response_model=LLMProviderResponse)
+async def get_llm_provider(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get current tenant's LLM provider settings
+
+    Returns provider type, model, and whether API key is configured.
+    Does NOT return the actual API key for security.
+    """
+    try:
+        # Get tenant
+        tenant = await db.get(Tenant, current_user.tenant_id)
+        if not tenant:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Tenant not found"
+            )
+
+        # Get provider settings (default to ollama/llama3.2 if not set)
+        provider = tenant.llm_provider or "ollama"
+        config = tenant.llm_config or {
+            "model": "llama3.2",
+            "base_url": "http://localhost:11434"
+        }
+
+        # Check if API key exists (without exposing it)
+        has_api_key = False
+        if provider == "openai":
+            # Check Vault first
+            try:
+                vault_key = await vault_client.get_tenant_secret(
+                    tenant_id=str(tenant.id),
+                    secret_key="openai_api_key"
+                )
+                has_api_key = bool(vault_key)
+            except Exception:
+                pass
+
+            # Check config
+            if not has_api_key:
+                has_api_key = bool(config.get("api_key"))
+
+        elif provider == "anthropic":
+            # Check Vault first
+            try:
+                vault_key = await vault_client.get_tenant_secret(
+                    tenant_id=str(tenant.id),
+                    secret_key="anthropic_api_key"
+                )
+                has_api_key = bool(vault_key)
+            except Exception:
+                pass
+
+            # Check config
+            if not has_api_key:
+                has_api_key = bool(config.get("api_key"))
+
+        logger.info(
+            "llm_provider_retrieved",
+            tenant_id=str(tenant.id),
+            provider=provider,
+        )
+
+        return LLMProviderResponse(
+            provider=provider,
+            model=config.get("model", "llama3.2"),
+            base_url=config.get("base_url") if provider == "ollama" else None,
+            has_api_key=has_api_key,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            "get_llm_provider_failed",
+            tenant_id=str(current_user.tenant_id),
+            error=str(e),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve LLM provider settings"
+        )
+
+
+@router.put("/llm-provider", response_model=LLMProviderResponse)
+async def update_llm_provider(
+    request: LLMProviderUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Update tenant's LLM provider settings
+
+    This will:
+    1. Validate the provider configuration
+    2. Store API key in Vault (for OpenAI, Anthropic)
+    3. Update tenant's llm_config
+    """
+    try:
+        # Get tenant
+        tenant = await db.get(Tenant, current_user.tenant_id)
+        if not tenant:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Tenant not found"
+            )
+
+        # Validate configuration
+        config = {
+            "model": request.model,
+        }
+
+        # Add provider-specific config
+        if request.provider == "openai":
+            if request.api_key:
+                # Store API key in Vault
+                try:
+                    await vault_client.set_tenant_secret(
+                        tenant_id=str(tenant.id),
+                        secret_key="openai_api_key",
+                        secret_value=request.api_key,
+                    )
+                    logger.info(
+                        "openai_llm_api_key_stored_in_vault",
+                        tenant_id=str(tenant.id),
+                    )
+                except Exception as vault_error:
+                    logger.warning(
+                        "vault_storage_failed_storing_in_config",
+                        tenant_id=str(tenant.id),
+                        error=str(vault_error),
+                    )
+                    # Fallback: store in config (less secure)
+                    config["api_key"] = request.api_key
+
+        elif request.provider == "anthropic":
+            if request.api_key:
+                # Store API key in Vault
+                try:
+                    await vault_client.set_tenant_secret(
+                        tenant_id=str(tenant.id),
+                        secret_key="anthropic_api_key",
+                        secret_value=request.api_key,
+                    )
+                    logger.info(
+                        "anthropic_api_key_stored_in_vault",
+                        tenant_id=str(tenant.id),
+                    )
+                except Exception as vault_error:
+                    logger.warning(
+                        "vault_storage_failed_storing_in_config",
+                        tenant_id=str(tenant.id),
+                        error=str(vault_error),
+                    )
+                    # Fallback: store in config (less secure)
+                    config["api_key"] = request.api_key
+
+        elif request.provider == "ollama":
+            config["base_url"] = request.base_url or "http://localhost:11434"
+
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Provider {request.provider} is not yet supported"
+            )
+
+        # Update tenant
+        tenant.llm_provider = request.provider
+        tenant.llm_config = config
+
+        await db.commit()
+        await db.refresh(tenant)
+
+        logger.info(
+            "llm_provider_updated",
+            tenant_id=str(tenant.id),
+            provider=request.provider,
+            model=request.model,
+        )
+
+        # Return response
+        has_api_key = bool(request.api_key or config.get("api_key"))
+
+        return LLMProviderResponse(
+            provider=request.provider,
+            model=request.model,
+            base_url=config.get("base_url"),
+            has_api_key=has_api_key,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            "update_llm_provider_failed",
+            tenant_id=str(current_user.tenant_id),
+            error=str(e),
+        )
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update LLM provider: {str(e)}"
         )

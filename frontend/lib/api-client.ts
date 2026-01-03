@@ -7,7 +7,7 @@ export const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 30000,
+  timeout: 120000, // 2 minutes for LLM operations
 });
 
 // Request interceptor - JWT token ekleme

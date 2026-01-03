@@ -138,3 +138,76 @@ class EmbeddingProviderTestResponse(BaseModel):
                 "dimensions": 768
             }
         }
+
+
+# ====== LLM Provider Settings ======
+
+class LLMProviderUpdate(BaseModel):
+    """
+    Request schema for updating LLM provider settings
+    """
+    provider: str = Field(
+        ...,
+        description="LLM provider type (openai, anthropic, ollama)"
+    )
+    model: str = Field(
+        ...,
+        description="Model name (e.g., 'gpt-4', 'claude-3-sonnet', 'llama3.2')"
+    )
+    api_key: Optional[str] = Field(
+        None,
+        description="API key (for OpenAI, Anthropic)"
+    )
+    base_url: Optional[str] = Field(
+        None,
+        description="Base URL (for Ollama or custom endpoints)"
+    )
+
+    @field_validator('base_url')
+    @classmethod
+    def validate_base_url(cls, v: Optional[str]) -> Optional[str]:
+        """Validate base URL format"""
+        if v and not v.startswith(('http://', 'https://')):
+            raise ValueError('Base URL must start with http:// or https://')
+        return v
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "provider": "ollama",
+                "model": "llama3.2",
+                "base_url": "http://localhost:11434"
+            }
+        }
+
+
+class LLMProviderResponse(BaseModel):
+    """
+    Response schema for LLM provider settings
+    """
+    provider: str = Field(
+        ...,
+        description="LLM provider type"
+    )
+    model: str = Field(
+        ...,
+        description="Model name"
+    )
+    base_url: Optional[str] = Field(
+        None,
+        description="Base URL (for Ollama)"
+    )
+    has_api_key: bool = Field(
+        ...,
+        description="Whether an API key is configured (doesn't expose the key)"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "provider": "ollama",
+                "model": "llama3.2",
+                "base_url": "http://localhost:11434",
+                "has_api_key": False
+            }
+        }

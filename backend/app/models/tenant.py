@@ -67,6 +67,20 @@ class Tenant(BaseModel):
         comment="Provider-specific configuration (API keys, URLs, model settings)"
     )
 
+    llm_provider: Mapped[str] = mapped_column(
+        String(50),
+        default="ollama",
+        nullable=False,
+        index=True,
+        comment="LLM provider type (openai, anthropic, ollama)"
+    )
+
+    llm_config: Mapped[Optional[dict]] = mapped_column(
+        JSONB,
+        nullable=True,
+        comment="LLM provider-specific configuration (API keys, URLs, model settings)"
+    )
+
     # Relationships
     users: Mapped[List["User"]] = relationship(
         "User",

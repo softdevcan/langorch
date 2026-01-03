@@ -8,8 +8,11 @@ import structlog
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.models.llm_operation import LLMOperation
+from app.models.tenant import Tenant
 from app.services.litellm_service import LiteLLMService
 from app.services.embedding_service import EmbeddingService
+from app.core.qdrant_client import qdrant_store
+from app.core.config import settings
 
 logger = structlog.get_logger()
 
@@ -25,13 +28,45 @@ class DocumentRAGService:
         self.db = db
         self.tenant_id = tenant_id
         self.user_id = user_id
-        self.llm_service = LiteLLMService(tenant_id)
-        self.embedding_service = EmbeddingService(tenant_id)
+        self.llm_service = None  # Will be initialized with provider info
+        self.embedding_service = EmbeddingService()
+
+    async def _get_tenant_llm_config(self) -> Dict[str, Any]:
+        """Get tenant's LLM provider configuration"""
+        tenant = await self.db.get(Tenant, self.tenant_id)
+        if not tenant:
+            # Default to ollama if tenant not found
+            return {
+                "provider": "ollama",
+                "model": "llama3.2",
+                "base_url": "http://localhost:11434"
+            }
+
+        provider = tenant.llm_provider or "ollama"
+        config = tenant.llm_config or {
+            "model": "llama3.2",
+            "base_url": "http://localhost:11434"
+        }
+
+        return {
+            "provider": provider,
+            "model": config.get("model", "llama3.2"),
+            "base_url": config.get("base_url"),
+        }
+
+    async def _initialize_llm_service(self):
+        """Initialize LLM service with tenant's provider settings"""
+        if self.llm_service is None:
+            llm_config = await self._get_tenant_llm_config()
+            self.llm_service = LiteLLMService(
+                tenant_id=self.tenant_id,
+                provider=llm_config["provider"]
+            )
 
     async def summarize_document(
         self,
         document_id: UUID,
-        model: str = "gpt-4",
+        model: Optional[str] = None,
         max_length: int = 500
     ) -> Dict[str, Any]:
         """
@@ -39,7 +74,7 @@ class DocumentRAGService:
 
         Args:
             document_id: Document to summarize
-            model: LLM model to use
+            model: LLM model to use (if None, uses tenant's default)
             max_length: Max summary length in words
 
         Returns:
@@ -51,6 +86,18 @@ class DocumentRAGService:
                 "cost_estimate": 0.015
             }
         """
+        # Initialize LLM service with tenant config
+        await self._initialize_llm_service()
+        llm_config = await self._get_tenant_llm_config()
+
+        # Use tenant's model if not specified
+        if model is None:
+            model = llm_config["model"]
+
+        # Add provider prefix if needed (e.g., ollama/llama3.2)
+        if llm_config["provider"] == "ollama" and not model.startswith("ollama/"):
+            model = f"ollama/{model}"
+
         # Create operation record
         operation = LLMOperation(
             tenant_id=self.tenant_id,
@@ -72,11 +119,24 @@ class DocumentRAGService:
             chunks = await self._get_document_chunks(document_id)
             full_content = "\n\n".join([chunk.content for chunk in chunks])
 
+            # Limit content length for faster processing (max ~2000 tokens ≈ 8000 chars)
+            # This is especially important for Ollama which can be slow with long contexts
+            max_content_chars = 8000
+            if len(full_content) > max_content_chars:
+                full_content = full_content[:max_content_chars] + "\n\n[Content truncated for performance...]"
+                logger.info(
+                    "document_content_truncated",
+                    tenant_id=str(self.tenant_id),
+                    document_id=str(document_id),
+                    original_length=len(full_content),
+                    truncated_to=max_content_chars
+                )
+
             # Create prompt
             messages = [
                 {
                     "role": "system",
-                    "content": f"You are a document summarization expert. Summarize the following document in approximately {max_length} words."
+                    "content": f"You are a document summarization expert. Summarize the following document in approximately {max_length} words. Be concise and focus on the main points."
                 },
                 {
                     "role": "user",
@@ -85,11 +145,15 @@ class DocumentRAGService:
             ]
 
             # Generate summary
+            # Limit max_tokens for faster response (especially with Ollama)
+            # For 500 words, use ~400 tokens (conservative estimate)
+            max_tokens_limit = min(max_length, 400)
+
             result = await self.llm_service.complete(
                 messages=messages,
                 model=model,
                 temperature=0.3,
-                max_tokens=max_length * 2  # Words to tokens rough estimate
+                max_tokens=max_tokens_limit
             )
 
             # Update operation
@@ -136,7 +200,7 @@ class DocumentRAGService:
         self,
         document_id: UUID,
         question: str,
-        model: str = "gpt-4",
+        model: Optional[str] = None,
         max_chunks: int = 5
     ) -> Dict[str, Any]:
         """
@@ -145,7 +209,7 @@ class DocumentRAGService:
         Args:
             document_id: Document to query
             question: User question
-            model: LLM model
+            model: LLM model (if None, uses tenant's default)
             max_chunks: Max relevant chunks to retrieve
 
         Returns:
@@ -158,6 +222,18 @@ class DocumentRAGService:
                 "cost_estimate": 0.02
             }
         """
+        # Initialize LLM service with tenant config
+        await self._initialize_llm_service()
+        llm_config = await self._get_tenant_llm_config()
+
+        # Use tenant's model if not specified
+        if model is None:
+            model = llm_config["model"]
+
+        # Add provider prefix if needed (e.g., ollama/llama3.2)
+        if llm_config["provider"] == "ollama" and not model.startswith("ollama/"):
+            model = f"ollama/{model}"
+
         # Create operation
         operation = LLMOperation(
             tenant_id=self.tenant_id,
@@ -175,11 +251,21 @@ class DocumentRAGService:
             # Get document
             document = await self._get_document(document_id)
 
-            # Vector search for relevant chunks
-            search_results = await self.embedding_service.search_similar(
-                query=question,
+            # Generate embedding for question
+            question_embedding = await self.embedding_service.generate_embedding(
+                text=question,
+                tenant_id=str(self.tenant_id)
+            )
+
+            if not question_embedding:
+                raise ValueError("Failed to generate embedding for question")
+
+            # Vector search for relevant chunks using Qdrant
+            search_results = await qdrant_store.search(
+                collection_name=settings.QDRANT_COLLECTION_NAME,
+                query_vector=question_embedding,
                 limit=max_chunks,
-                filter_metadata={"document_id": str(document_id)}
+                filter_metadata={"document_id": str(document_id), "tenant_id": str(self.tenant_id)}
             )
 
             # Prepare context
@@ -265,7 +351,7 @@ class DocumentRAGService:
         self,
         document_id: UUID,
         instruction: str,
-        model: str = "gpt-4",
+        model: Optional[str] = None,
         output_format: str = "text"
     ) -> Dict[str, Any]:
         """
@@ -274,7 +360,7 @@ class DocumentRAGService:
         Args:
             document_id: Document to transform
             instruction: Transformation instruction (e.g., "Translate to Turkish", "Make it formal")
-            model: LLM model
+            model: LLM model (if None, uses tenant's default)
             output_format: 'text', 'markdown', 'json'
 
         Returns:
@@ -286,6 +372,18 @@ class DocumentRAGService:
                 "cost_estimate": 0.03
             }
         """
+        # Initialize LLM service with tenant config
+        await self._initialize_llm_service()
+        llm_config = await self._get_tenant_llm_config()
+
+        # Use tenant's model if not specified
+        if model is None:
+            model = llm_config["model"]
+
+        # Add provider prefix if needed (e.g., ollama/llama3.2)
+        if llm_config["provider"] == "ollama" and not model.startswith("ollama/"):
+            model = f"ollama/{model}"
+
         # Create operation
         operation = LLMOperation(
             tenant_id=self.tenant_id,
