@@ -242,22 +242,23 @@ class QdrantStore:
 
             search_filter = Filter(must=must_conditions)
 
-            # Perform search
-            search_results = client.search(
+            # Perform search using query_points (new Qdrant API)
+            search_response = client.query_points(
                 collection_name=collection_name,
-                query_vector=query_vector,
+                query=query_vector,
                 query_filter=search_filter,
                 limit=limit,
                 score_threshold=score_threshold,
+                with_payload=True,
             )
 
             # Format results
             results = []
-            for hit in search_results:
+            for point in search_response.points:
                 results.append({
-                    "id": hit.id,
-                    "score": hit.score,
-                    "payload": hit.payload,
+                    "id": point.id,
+                    "score": point.score,
+                    "payload": point.payload,
                 })
 
             logger.info(

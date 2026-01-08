@@ -105,12 +105,12 @@ class OllamaProvider(BaseEmbeddingProvider):
                         logger.error("ollama_empty_embedding_response")
                         return None
 
-                    logger.info(
-                        "ollama_embedding_generated",
-                        model=self.model,
-                        text_length=len(text),
-                        embedding_dim=len(embedding),
-                    )
+                    # logger.info(
+                    #     "ollama_embedding_generated",
+                    #     model=self.model,
+                    #     text_length=len(text),
+                    #     embedding_dim=len(embedding),
+                    # )
 
                     return embedding
 

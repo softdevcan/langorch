@@ -199,6 +199,7 @@ export interface DocumentSummarizeRequest {
   document_id: string;
   model?: string;
   max_length?: number;
+  force?: boolean; // If true, create new summary even if one exists
 }
 
 export interface DocumentOperationStartResponse {

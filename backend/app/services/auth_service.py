@@ -55,7 +55,8 @@ class AuthService:
             logger.warning("authentication_failed_wrong_password", email=email, user_id=str(user.id))
             return None
 
-        logger.info("user_authenticated_successfully", email=email, user_id=str(user.id))
+        # Log only on login, not on every authenticated request
+        logger.info("user_logged_in", email=email, user_id=str(user.id), role=user.role.value)
         return user
 
     @staticmethod

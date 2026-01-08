@@ -5,7 +5,6 @@ from enum import Enum as PyEnum
 from sqlalchemy import String, Integer, ForeignKey, Enum, Text, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from pgvector.sqlalchemy import Vector
 from typing import List, Optional
 
 from app.models.base import BaseModel
@@ -91,10 +90,10 @@ class Document(BaseModel):
         comment="Extracted text content (for full-text search)"
     )
 
-    embedding: Mapped[Optional[Vector]] = mapped_column(
-        Vector(1536),  # OpenAI ada-002/ada-003 dimension
+    embedding: Mapped[Optional[list]] = mapped_column(
+        JSONB,  # Dynamic dimensions - supports any embedding model
         nullable=True,
-        comment="Document-level embedding vector (1536 dimensions)"
+        comment="Document-level embedding vector (dynamic dimensions, stored as JSONB array)"
     )
 
     # Metadata

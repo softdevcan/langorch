@@ -93,20 +93,96 @@ async def extract_text_from_file(file_path: str, file_type: str) -> str:
     Returns:
         Extracted text content
 
-    TODO: Implement proper text extraction for different file types
-    - PDF: PyPDF2 or pdfplumber
-    - DOCX: python-docx
-    - TXT: direct read
-    - etc.
+    Supports:
+    - TXT: Plain text files
+    - PDF: PDF documents (PyPDF2)
+    - DOCX: Microsoft Word documents (python-docx)
     """
-    # For now, just handle text files
-    if file_type.startswith("text/"):
-        async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
-            content = await f.read()
+    try:
+        # Handle text files
+        if file_type.startswith("text/") or file_path.endswith(".txt"):
+            async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
+                content = await f.read()
+                return content
+
+        # Handle PDF files
+        elif file_type == "application/pdf" or file_path.endswith(".pdf"):
+            from PyPDF2 import PdfReader
+
+            reader = PdfReader(file_path)
+            text_content = []
+
+            for page in reader.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text_content.append(page_text)
+
+            content = "\n\n".join(text_content)
+
+            if not content.strip():
+                raise ValidationException(
+                    "PDF extraction failed",
+                    detail="No text content found in PDF. The PDF might be image-based or encrypted."
+                )
+
             return content
 
-    # Placeholder for other file types
-    return f"[Content extraction not implemented for {file_type}]"
+        # Handle DOCX files
+        elif file_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" or file_path.endswith(".docx"):
+            from docx import Document
+
+            doc = Document(file_path)
+            text_content = []
+
+            for paragraph in doc.paragraphs:
+                if paragraph.text.strip():
+                    text_content.append(paragraph.text)
+
+            # Also extract text from tables
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        if cell.text.strip():
+                            text_content.append(cell.text)
+
+            content = "\n\n".join(text_content)
+
+            if not content.strip():
+                raise ValidationException(
+                    "DOCX extraction failed",
+                    detail="No text content found in DOCX file."
+                )
+
+            return content
+
+        # Handle DOC files (older format)
+        elif file_type == "application/msword" or file_path.endswith(".doc"):
+            raise ValidationException(
+                "DOC format not supported",
+                detail="Please convert your .doc file to .docx format. Only .docx files are supported."
+            )
+
+        # Unsupported file type
+        else:
+            raise ValidationException(
+                "Unsupported file type",
+                detail=f"File type '{file_type}' is not supported. Supported formats: TXT, PDF, DOCX"
+            )
+
+    except ValidationException:
+        # Re-raise validation exceptions
+        raise
+    except Exception as e:
+        logger.error(
+            "text_extraction_failed",
+            file_path=file_path,
+            file_type=file_type,
+            error=str(e),
+        )
+        raise ValidationException(
+            "Text extraction failed",
+            detail=f"Failed to extract text from file: {str(e)}"
+        )
 
 
 @router.post(
@@ -362,6 +438,14 @@ async def search_documents(
     Returns ranked results with similarity scores
     """
     try:
+        logger.info(
+            "search_request_received",
+            query=search_request.query,
+            limit=search_request.limit,
+            score_threshold=search_request.score_threshold,
+            tenant_id=str(current_user.tenant_id)
+        )
+
         result = await DocumentService.search_documents(
             db=db,
             search_request=search_request,
@@ -371,7 +455,11 @@ async def search_documents(
         return DocumentSearchResponse(**result)
 
     except ValidationException as e:
+        logger.error("search_validation_error", error=str(e), detail=e.detail)
         raise http_400_bad_request(detail=e.detail or e.message)
+    except Exception as e:
+        logger.error("search_unexpected_error", error=str(e), exc_info=True)
+        raise http_400_bad_request(detail=f"Search failed: {str(e)}")
 
 
 @router.delete(

@@ -19,6 +19,7 @@ export function DocumentActions({ document }: DocumentActionsProps) {
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<string>("");
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summaryChecked, setSummaryChecked] = useState(false);
 
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string>("");
@@ -45,17 +46,38 @@ export function DocumentActions({ document }: DocumentActionsProps) {
     fetchLLMSettings();
   }, []);
 
+  // Check for existing summary when dialog opens
+  useEffect(() => {
+    const checkExistingSummary = async () => {
+      if (summaryOpen && !summaryChecked && !summary) {
+        try {
+          const existingSummary = await llmApi.getLatestSummary(document.id);
+          if (existingSummary?.output_data?.summary) {
+            setSummary(existingSummary.output_data.summary);
+            toast.info("Loaded existing summary");
+          }
+        } catch (error) {
+          console.error("Failed to check existing summary:", error);
+        } finally {
+          setSummaryChecked(true);
+        }
+      }
+    };
+    checkExistingSummary();
+  }, [summaryOpen, summaryChecked, summary, document.id]);
+
   // Summarize
-  const handleSummarize = async () => {
+  const handleSummarize = async (force: boolean = false) => {
     setLoading(true);
     try {
       const result = await llmApi.summarizeDocument({
         document_id: document.id,
         model: llmModel,
-        max_length: 500
+        max_length: 500,
+        force
       });
       setSummary(result.summary);
-      toast.success("Summary generated!");
+      toast.success(force ? "New summary generated!" : "Summary generated!");
     } catch (error: any) {
       toast.error(error.response?.data?.detail || "Failed to summarize");
     } finally {
@@ -121,7 +143,6 @@ export function DocumentActions({ document }: DocumentActionsProps) {
             size="sm"
             onClick={() => {
               setSummaryOpen(true);
-              if (!summary) handleSummarize();
             }}
           >
             <FileText className="mr-2 h-4 w-4" />
@@ -138,11 +159,28 @@ export function DocumentActions({ document }: DocumentActionsProps) {
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
           ) : summary ? (
-            <div className="p-4 rounded-lg border border-border bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-              <p className="text-sm whitespace-pre-wrap">{summary}</p>
-            </div>
+            <>
+              <div className="p-4 rounded-lg border bg-muted/50">
+                <p className="text-sm whitespace-pre-wrap">{summary}</p>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => handleSummarize(true)}
+                  disabled={loading}
+                >
+                  Regenerate Summary
+                </Button>
+              </DialogFooter>
+            </>
           ) : (
-            <p className="text-sm text-muted-foreground">Click "Summarize" to generate summary</p>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">No summary found for this document.</p>
+              <Button onClick={() => handleSummarize(false)} disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Generate Summary
+              </Button>
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -176,7 +214,7 @@ export function DocumentActions({ document }: DocumentActionsProps) {
               Ask
             </Button>
             {answer && (
-              <div className="p-4 mt-4 rounded-lg border border-border bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+              <div className="p-4 mt-4 rounded-lg border bg-muted/50">
                 <Label className="mb-2 block font-semibold">Answer:</Label>
                 <p className="text-sm whitespace-pre-wrap">{answer}</p>
               </div>

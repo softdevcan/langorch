@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -31,6 +31,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const pathname = usePathname();
   const { user, token } = useAuthStore();
   const [isChecking, setIsChecking] = useState(true);
+  const hasCheckedInitial = useRef(false);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -65,14 +66,18 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         return;
       }
 
+      // Only show loading on initial check, not on subsequent navigation
+      if (!hasCheckedInitial.current) {
+        hasCheckedInitial.current = true;
+      }
       setIsChecking(false);
     };
 
     checkAuth();
   }, [token, user, pathname, router]);
 
-  // Show loading state while checking authentication
-  if (isChecking) {
+  // Show loading state only during initial authentication check
+  if (isChecking && !hasCheckedInitial.current) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">

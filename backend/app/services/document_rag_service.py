@@ -11,6 +11,7 @@ from app.models.llm_operation import LLMOperation
 from app.models.tenant import Tenant
 from app.services.litellm_service import LiteLLMService
 from app.services.embedding_service import EmbeddingService
+from app.services.embedding_providers import create_provider_from_tenant_config
 from app.core.qdrant_client import qdrant_store
 from app.core.config import settings
 
@@ -67,7 +68,8 @@ class DocumentRAGService:
         self,
         document_id: UUID,
         model: Optional[str] = None,
-        max_length: int = 500
+        max_length: int = 500,
+        force: bool = False
     ) -> Dict[str, Any]:
         """
         Summarize document content
@@ -76,6 +78,7 @@ class DocumentRAGService:
             document_id: Document to summarize
             model: LLM model to use (if None, uses tenant's default)
             max_length: Max summary length in words
+            force: If True, create new summary even if one exists
 
         Returns:
             {
@@ -86,6 +89,25 @@ class DocumentRAGService:
                 "cost_estimate": 0.015
             }
         """
+        # Check if document already has a completed summary (unless force=True)
+        if not force:
+            existing_summary = await self._get_existing_summary(document_id)
+            if existing_summary:
+                logger.info(
+                    "returning_existing_summary",
+                    tenant_id=str(self.tenant_id),
+                    document_id=str(document_id),
+                    operation_id=str(existing_summary.id)
+                )
+                return {
+                    "operation_id": existing_summary.id,
+                    "summary": existing_summary.output_data.get("summary", ""),
+                    "model_used": existing_summary.model_used,
+                    "tokens_used": existing_summary.tokens_used,
+                    "cost_estimate": existing_summary.cost_estimate,
+                    "cached": True
+                }
+
         # Initialize LLM service with tenant config
         await self._initialize_llm_service()
         llm_config = await self._get_tenant_llm_config()
@@ -136,7 +158,7 @@ class DocumentRAGService:
             messages = [
                 {
                     "role": "system",
-                    "content": f"You are a document summarization expert. Summarize the following document in approximately {max_length} words. Be concise and focus on the main points."
+                    "content": f"You are a document summarization expert. Summarize the following document concisely in MAXIMUM {max_length} words. The summary should be significantly shorter than the original text. Focus only on the main points and key information."
                 },
                 {
                     "role": "user",
@@ -145,9 +167,10 @@ class DocumentRAGService:
             ]
 
             # Generate summary
-            # Limit max_tokens for faster response (especially with Ollama)
-            # For 500 words, use ~400 tokens (conservative estimate)
-            max_tokens_limit = min(max_length, 400)
+            # Calculate appropriate max_tokens based on requested word count
+            # Rough estimate: 1 word ≈ 1.3 tokens (conservative)
+            # Add buffer for shorter documents to allow flexibility
+            max_tokens_limit = int(max_length * 1.5)
 
             result = await self.llm_service.complete(
                 messages=messages,
@@ -251,21 +274,52 @@ class DocumentRAGService:
             # Get document
             document = await self._get_document(document_id)
 
-            # Generate embedding for question
-            question_embedding = await self.embedding_service.generate_embedding(
-                text=question,
-                tenant_id=str(self.tenant_id)
+            # Get tenant's embedding provider configuration
+            tenant = await self.db.get(Tenant, self.tenant_id)
+            if not tenant:
+                raise ValueError(f"Tenant {self.tenant_id} not found")
+
+            provider_config = tenant.embedding_config or {
+                "provider": "openai",
+                "model": "text-embedding-3-small",
+            }
+
+            # Get fallback API key from settings if using OpenAI
+            fallback_api_key = None
+            if tenant.embedding_provider == "openai":
+                fallback_api_key = settings.OPENAI_API_KEY
+
+            # Create provider instance from tenant configuration
+            provider = await create_provider_from_tenant_config(
+                tenant_config=provider_config,
+                fallback_api_key=fallback_api_key,
             )
 
-            if not question_embedding:
+            # Generate embedding for question using tenant's provider
+            question_embeddings = await provider.generate_embeddings_batch(
+                texts=[question],
+            )
+
+            if not question_embeddings or not question_embeddings[0]:
                 raise ValueError("Failed to generate embedding for question")
+
+            question_embedding = question_embeddings[0]
+
+            logger.info(
+                "question_embedding_generated",
+                tenant_id=str(self.tenant_id),
+                provider=tenant.embedding_provider,
+                model=provider_config.get("model"),
+                embedding_dim=len(question_embedding),
+            )
 
             # Vector search for relevant chunks using Qdrant
             search_results = await qdrant_store.search(
                 collection_name=settings.QDRANT_COLLECTION_NAME,
                 query_vector=question_embedding,
+                tenant_id=str(self.tenant_id),
                 limit=max_chunks,
-                filter_metadata={"document_id": str(document_id), "tenant_id": str(self.tenant_id)}
+                filter_conditions={"document_id": str(document_id)}
             )
 
             # Prepare context
@@ -497,3 +551,15 @@ class DocumentRAGService:
 
         result = await self.db.execute(stmt)
         return result.scalars().all()
+
+    async def _get_existing_summary(self, document_id: UUID) -> Optional[LLMOperation]:
+        """Get existing completed summary operation for a document"""
+        stmt = select(LLMOperation).where(
+            LLMOperation.document_id == document_id,
+            LLMOperation.tenant_id == self.tenant_id,
+            LLMOperation.operation_type == "summarize",
+            LLMOperation.status == "completed"
+        ).order_by(LLMOperation.completed_at.desc()).limit(1)
+
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()

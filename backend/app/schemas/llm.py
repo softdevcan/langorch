@@ -53,6 +53,7 @@ class DocumentSummarizeRequest(BaseModel):
     document_id: UUID
     model: Optional[str] = None
     max_length: Optional[int] = 500
+    force: Optional[bool] = False  # If True, create new summary even if one exists
 
 
 class DocumentSummarizeResponse(BaseModel):
@@ -61,6 +62,7 @@ class DocumentSummarizeResponse(BaseModel):
     model_used: str
     tokens_used: int
     cost_estimate: Optional[Decimal]
+    cached: Optional[bool] = False  # True if returning existing summary
 
 
 class DocumentOperationStartResponse(BaseModel):

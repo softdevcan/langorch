@@ -4,7 +4,6 @@ DocumentChunk model - Chunks from processed documents
 from sqlalchemy import String, Integer, ForeignKey, Text, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from pgvector.sqlalchemy import Vector
 from typing import Optional
 
 from app.models.base import BaseModel
@@ -63,10 +62,10 @@ class DocumentChunk(BaseModel):
     )
 
     # Embedding vector (optional - can be generated later)
-    embedding: Mapped[Optional[Vector]] = mapped_column(
-        Vector(1536),  # OpenAI ada-002/ada-003 dimension
+    embedding: Mapped[Optional[list]] = mapped_column(
+        JSONB,  # Dynamic dimensions - supports any embedding model
         nullable=True,
-        comment="Chunk embedding vector (1536 dimensions) - nullable for documents without embeddings"
+        comment="Chunk embedding vector (dynamic dimensions, stored as JSONB array) - nullable for documents without embeddings"
     )
 
     # Chunk-specific metadata

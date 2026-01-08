@@ -61,12 +61,8 @@ async def get_current_user(
         logger.warning("inactive_user_attempted_access", user_id=str(user.id))
         raise http_401_unauthorized(detail="Inactive user")
 
-    logger.info(
-        "user_authenticated",
-        user_id=str(user.id),
-        email=user.email,
-        role=user.role.value,
-    )
+    # Removed excessive logging - user_authenticated info log on every request
+    # Only log on login (in auth_service.py) to reduce noise
 
     return user
 

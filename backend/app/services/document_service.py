@@ -197,6 +197,7 @@ class DocumentService:
                     provider=tenant.embedding_provider,
                     model=provider_config.get("model"),
                     chunk_count=len(chunk_texts),
+                    embedding_dim=len(embeddings[0]) if embeddings and embeddings[0] else 0,
                 )
 
             except Exception as emb_error:

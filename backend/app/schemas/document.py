@@ -58,9 +58,9 @@ class DocumentListResponse(BaseSchema):
 class DocumentSearchRequest(BaseSchema):
     """Schema for semantic search request"""
     query: str = Field(..., min_length=1, max_length=1000, description="Search query text")
-    limit: int = Field(10, ge=1, le=100, description="Maximum number of results")
-    score_threshold: Optional[float] = Field(None, ge=0.0, le=1.0, description="Minimum similarity score")
-    filter_metadata: Optional[Dict[str, Any]] = Field(None, description="Filter by document metadata")
+    limit: int = Field(default=10, ge=1, le=100, description="Maximum number of results")
+    score_threshold: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Minimum similarity score")
+    filter_metadata: Optional[Dict[str, Any]] = Field(default=None, description="Filter by document metadata")
 
 
 class SearchResult(BaseSchema):

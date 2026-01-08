@@ -17,7 +17,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const pollOperation = async (
   operationId: string,
   pollInterval = 2000,
-  maxAttempts = 150 // 5 minutes max (150 * 2 seconds)
+  maxAttempts = 300 // 10 minutes max (300 * 2 seconds) - increased for long operations like transform
 ): Promise<LLMOperation> => {
   let attempts = 0;
 
@@ -62,16 +62,47 @@ export const llmApi = {
     };
   },
 
-  // Ask question
+  // Ask question (with polling)
   askQuestion: async (data: DocumentAskRequest): Promise<DocumentAskResponse> => {
-    const response = await apiClient.post('/api/v1/llm/documents/ask', data);
-    return response.data;
+    // Start the operation
+    const startResponse = await apiClient.post<DocumentOperationStartResponse>(
+      '/api/v1/llm/documents/ask',
+      data
+    );
+
+    // Poll until completion
+    const operation = await pollOperation(startResponse.data.operation_id);
+
+    // Return the result in the expected format
+    return {
+      operation_id: operation.id,
+      answer: operation.output_data?.answer || '',
+      sources: operation.output_data?.sources || [],
+      model_used: operation.model_used || '',
+      tokens_used: operation.tokens_used || 0,
+      cost_estimate: operation.cost_estimate || 0
+    };
   },
 
-  // Transform document
+  // Transform document (with polling)
   transformDocument: async (data: DocumentTransformRequest): Promise<DocumentTransformResponse> => {
-    const response = await apiClient.post('/api/v1/llm/documents/transform', data);
-    return response.data;
+    // Start the operation
+    const startResponse = await apiClient.post<DocumentOperationStartResponse>(
+      '/api/v1/llm/documents/transform',
+      data
+    );
+
+    // Poll until completion
+    const operation = await pollOperation(startResponse.data.operation_id);
+
+    // Return the result in the expected format
+    return {
+      operation_id: operation.id,
+      transformed_content: operation.output_data?.transformed_content || '',
+      model_used: operation.model_used || '',
+      tokens_used: operation.tokens_used || 0,
+      cost_estimate: operation.cost_estimate || 0
+    };
   },
 
   // List operations
@@ -86,5 +117,18 @@ export const llmApi = {
   getOperation: async (operationId: string): Promise<LLMOperation> => {
     const response = await apiClient.get(`/api/v1/llm/operations/${operationId}`);
     return response.data;
+  },
+
+  // Get latest summary for a document
+  getLatestSummary: async (documentId: string): Promise<LLMOperation | null> => {
+    try {
+      const response = await apiClient.get(`/api/v1/llm/documents/${documentId}/summarize/latest`);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return null; // No summary exists
+      }
+      throw error;
+    }
   }
 };
