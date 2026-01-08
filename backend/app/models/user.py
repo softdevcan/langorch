@@ -94,5 +94,26 @@ class User(BaseModel):
         back_populates="user"
     )
 
+    # v0.4 LangGraph relationships
+    workflows: Mapped[List["Workflow"]] = relationship(
+        "Workflow",
+        back_populates="user"
+    )
+
+    workflow_executions: Mapped[List["WorkflowExecution"]] = relationship(
+        "WorkflowExecution",
+        back_populates="user"
+    )
+
+    conversation_sessions: Mapped[List["ConversationSession"]] = relationship(
+        "ConversationSession",
+        back_populates="user"
+    )
+
+    hitl_approvals: Mapped[List["HITLApproval"]] = relationship(
+        "HITLApproval",
+        back_populates="user"
+    )
+
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email}, role={self.role})>"

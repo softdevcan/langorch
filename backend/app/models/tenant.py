@@ -112,5 +112,30 @@ class Tenant(BaseModel):
         cascade="all, delete-orphan"
     )
 
+    # v0.4 LangGraph relationships
+    workflows: Mapped[List["Workflow"]] = relationship(
+        "Workflow",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
+
+    workflow_executions: Mapped[List["WorkflowExecution"]] = relationship(
+        "WorkflowExecution",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
+
+    conversation_sessions: Mapped[List["ConversationSession"]] = relationship(
+        "ConversationSession",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
+
+    hitl_approvals: Mapped[List["HITLApproval"]] = relationship(
+        "HITLApproval",
+        back_populates="tenant",
+        cascade="all, delete-orphan"
+    )
+
     def __repr__(self) -> str:
         return f"<Tenant(id={self.id}, name={self.name}, slug={self.slug})>"

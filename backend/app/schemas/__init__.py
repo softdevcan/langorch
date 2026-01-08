@@ -36,9 +36,63 @@ class ErrorResponse(BaseSchema):
     code: Optional[str] = None
 
 
+# v0.4 LangGraph schemas
+from app.schemas.workflow import (
+    WorkflowConfig,
+    WorkflowConfigNode,
+    WorkflowConfigEdge,
+    WorkflowCreate,
+    WorkflowUpdate,
+    WorkflowResponse,
+    WorkflowExecuteRequest,
+    WorkflowExecuteResponse,
+    WorkflowResumeRequest,
+    WorkflowExecutionResponse,
+)
+from app.schemas.conversation import (
+    MessageCreate,
+    MessageResponse as ConversationMessageResponse,
+    ConversationSessionCreate,
+    ConversationSessionUpdate,
+    ConversationSessionResponse,
+    ConversationSessionWithMessages,
+    SendMessageRequest,
+    ChatStreamEvent,
+)
+from app.schemas.hitl import (
+    HITLApprovalCreate,
+    HITLApprovalResponse,
+    HITLRespondRequest,
+)
+
+
 __all__ = [
     "BaseSchema",
     "TimestampSchema",
     "MessageResponse",
     "ErrorResponse",
+    # v0.4 Workflow schemas
+    "WorkflowConfig",
+    "WorkflowConfigNode",
+    "WorkflowConfigEdge",
+    "WorkflowCreate",
+    "WorkflowUpdate",
+    "WorkflowResponse",
+    "WorkflowExecuteRequest",
+    "WorkflowExecuteResponse",
+    "WorkflowResumeRequest",
+    "WorkflowExecutionResponse",
+    # v0.4 Conversation schemas
+    "MessageCreate",
+    "ConversationMessageResponse",
+    "ConversationSessionCreate",
+    "ConversationSessionUpdate",
+    "ConversationSessionResponse",
+    "ConversationSessionWithMessages",
+    "SendMessageRequest",
+    "ChatStreamEvent",
+    # v0.4 HITL schemas
+    "HITLApprovalCreate",
+    "HITLApprovalResponse",
+    "HITLRespondRequest",
 ]
