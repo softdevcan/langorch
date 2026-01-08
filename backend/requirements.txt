@@ -20,6 +20,8 @@ litellm>=1.80.11
 sqlalchemy>=2.0.36
 asyncpg>=0.30.0
 alembic>=1.14.0
+psycopg[binary]>=3.2.3  # PostgreSQL adapter for LangGraph checkpointer
+psycopg-pool>=3.2.3  # Connection pooling for checkpointer
 
 # Vector Databases
 qdrant-client>=1.12.0
