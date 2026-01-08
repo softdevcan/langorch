@@ -133,17 +133,21 @@ npm run dev
 
 [View Full Changelog](CHANGELOG.md)
 
-### v0.4.0 - Coming Soon
+### v0.4.0 - In Development
 
-**Planned Features:**
-- LangGraph integration for multi-agent workflows
-- LangSmith observability and monitoring
-- Streaming responses via Server-Sent Events (SSE)
-- Advanced RAG: reranking, hybrid search, multi-query
-- Conversation history and memory
-- Agent-based architecture
+**Target Features:**
+- LangGraph StateGraph for workflow orchestration
+- Real-time chat interface with conversation history
+- Server-Sent Events (SSE) streaming responses
+- Human-in-the-Loop (HITL) approval system
+- PostgresSaver checkpoint persistence
+- Workflow templates (RAG, Simple Chat)
+- Multi-turn conversation support
+- Advanced RAG with document grading
 
-[View v0.4 Development Prompt](docs/development-phases/V0.4_LANGGRAPH_PROMPT.md)
+**Development Status:** 📋 Specification complete, ready to start implementation
+
+[View v0.4 Development Guide](docs/development-phases/V0.4_DEVELOPMENT_PROMPT.md) | [View v0.4 Specification](docs/development-phases/V0.4_LANGGRAPH_PROMPT.md)
 
 ### v1.0.0 - Production Ready
 
