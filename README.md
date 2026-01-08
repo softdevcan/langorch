@@ -1,172 +1,186 @@
 # LangOrch
-**Language Workflow Orchestration Platform**
+**Multi-Tenant RAG Platform with Async Operations**
 
-🚀 Graph-as-a-Service mimarisi ile modern SaaS RAG orkestrasyon platformu
+🚀 Production-ready, multi-tenant RAG orchestration platform with background task processing
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![Next.js](https://img.shields.io/badge/next.js-14%2B-black.svg)](https://nextjs.org/)
+[![Version](https://img.shields.io/badge/version-0.3.0-green.svg)](VERSION)
 
-## 🎯 Proje Hakkında
+## 🎯 About LangOrch
 
-LangOrch, **Graph-as-a-Service** mimarisi üzerine kurulu, **çok kiracılı (multi-tenant)**, **hibrit LLM destekli** ve **Human-in-the-Loop** yetenekleri ile donatılmış modern bir SaaS RAG orkestrasyon platformudur.
+LangOrch is a **multi-tenant SaaS platform** for **Retrieval-Augmented Generation (RAG)** with enterprise-grade features:
 
-### Temel Özellikler
+- ✅ **Production-Ready v0.3.0**: Async operations, smart caching, timeout-free processing
+- 🏢 **Multi-Tenant Architecture**: Complete data isolation per tenant
+- 🤖 **Multi-Provider LLM**: OpenAI, Anthropic, Ollama support via LiteLLM
+- 📊 **Vector Search**: Qdrant integration for semantic document search
+- 🔐 **Enterprise Security**: HashiCorp Vault, JWT auth, tenant isolation
+- ⚡ **Background Processing**: No timeouts on long-running operations (10+ minutes)
 
-- 🔗 **Graph-as-a-Service**: LangGraph ile dinamik workflow yönetimi
-- 🏢 **Multi-Tenant İzolasyon**: Enterprise seviye tenant güvenliği (RLS + Application layer)
-- 🤖 **Hibrit LLM**: OpenAI, Anthropic, Ollama ve daha fazlası (LiteLLM)
-- 👤 **Human-in-the-Loop**: Kritik noktalarda insan onay mekanizmaları
-- 📊 **Vector Search**: pgvector + Qdrant ile semantic search
-- 🔐 **Secret Management**: HashiCorp Vault entegrasyonu
-- ⚡ **Real-time Streaming**: SSE ile canlı token streaming
-- 📈 **Scalable**: Milyonlarca kullanıcı için tasarlanmış mimari
+## ✨ Current Features (v0.3.0)
 
-## 🏗️ Teknoloji Yığını
+### Document RAG Operations
+- **Summarize**: Generate concise document summaries with smart caching
+- **Ask**: Question-answering with RAG (vector search + LLM)
+- **Transform**: Document transformation (translate, format, extract, etc.)
+
+### Core Capabilities
+- **Async Background Tasks**: All LLM operations run in background with polling
+- **Smart Summary Caching**: Reuse existing summaries, optional force regeneration
+- **Multi-Provider Embedding**: OpenAI, Google Gemini, Anthropic Claude, Ollama
+- **Dynamic Embedding Dimensions**: Support for different embedding models
+- **Tenant Configuration**: Per-tenant LLM and embedding provider settings
+- **Document Management**: Upload, process, chunk, and embed PDF/DOCX files
+
+## 🏗️ Tech Stack
 
 ### Backend
-- **FastAPI** (Python 3.11+) - Async web framework
-- **LangGraph** - Agent orkestrasyon motoru
-- **LiteLLM** - Unified LLM API & cost optimization
-- **PostgreSQL 16+** + **pgvector** - İlişkisel veritabanı & vektör arama
-- **Redis 7+** - Cache & session yönetimi
-- **Qdrant** - Vektör veritabanı
-- **HashiCorp Vault** - Secret management
-- **SQLAlchemy** + **Alembic** - ORM & migrations
+- **FastAPI** - High-performance async web framework
+- **LiteLLM** - Unified LLM API (OpenAI, Anthropic, Ollama)
+- **PostgreSQL 16+** - Primary database
+- **Qdrant** - Vector database for semantic search
+- **Redis 7+** - Caching and session management
+- **HashiCorp Vault** - Secure secret management
+- **SQLAlchemy** + **Alembic** - ORM and migrations
 - **Pydantic** - Data validation
 - **structlog** - Structured logging
 
 ### Frontend
-- **Next.js 14+** (App Router) - React framework
-- **React Flow** - Workflow görselleştirme
-- **Zustand** - State management
-- **shadcn/ui** + **TailwindCSS** - UI component library
-- **React Query** - Server state management
-- **Axios** - HTTP client
+- **Next.js 14** (App Router)
+- **React** with TypeScript
+- **shadcn/ui** + **TailwindCSS**
+- **Axios** - API client
+- **Sonner** - Toast notifications
 
 ### Infrastructure
-- **Docker** & **Docker Compose** - Containerization
-- **Nginx** - Reverse proxy & load balancing
-- **Prometheus** & **Grafana** - Monitoring
-- **GitHub Actions** - CI/CD
+- **Docker** & **Docker Compose**
+- **Nginx** (optional reverse proxy)
 
-## 🚀 Hızlı Başlangıç
+## 🚀 Quick Start
 
-### Gereksinimler
+### Prerequisites
 
 - Docker & Docker Compose
 - Python 3.11+
 - Node.js 18+
 - Git
 
-### Kurulum
+### Installation
 
 ```bash
-# 1. Repository'yi klonla
+# 1. Clone the repository
 git clone <repository-url>
 cd langorch
 
-# 2. Environment dosyasını oluştur
+# 2. Create environment file
 cp .env.example .env
+# Edit .env with your settings
 
-# 3. Docker servisleri başlat (PostgreSQL, Redis, Vault, Qdrant)
+# 3. Start infrastructure services
 docker-compose up -d
 
-# 4. Backend kurulumu
+# 4. Backend setup
 cd backend
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# Database migrations
+# Run database migrations
 alembic upgrade head
 
-# Backend'i başlat
+# Start backend
 uvicorn app.main:app --reload
 
-# 5. Frontend kurulumu (yeni terminal)
+# 5. Frontend setup (new terminal)
 cd frontend
 npm install
 npm run dev
 ```
 
-### Erişim
+### Access Points
 
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8000
 - **API Docs**: http://localhost:8000/docs
 - **Vault UI**: http://localhost:8200 (Token: dev-root-token)
+- **Qdrant Dashboard**: http://localhost:6333/dashboard
 
-## 📚 Geliştirme Süreci
+## 📚 Version Roadmap
 
-Bu proje **paralel ve dengeli geliştirme** prensibiyle tasarlanmıştır.
+| Version | Status | Description | Release Date |
+|---------|--------|-------------|--------------|
+| **v0.3.0** | ✅ **Released** | Async RAG operations with smart caching | 2026-01-08 |
+| **v0.4.0** | 🚧 In Development | LangGraph multi-agent workflows, streaming | Q1 2026 |
+| **v1.0.0** | 📋 Planned | Production-ready, full observability | Q2 2026 |
 
-### 📖 Doküman Rehberi
+### v0.3.0 - Current Release
 
-Hangi durumda hangi dokümanı okumalısınız?
+**What's New:**
+- Background task processing for all LLM operations (Summarize, Ask, Transform)
+- Smart summary caching with force regeneration option
+- Extended timeout support (10 minutes) for long operations
+- Multi-provider embedding support (OpenAI, Gemini, Claude, Ollama)
+- Dynamic embedding dimensions
+- Latest summary retrieval endpoint
+- Improved error handling and logging
 
-| Durum | Doküman | Açıklama |
-|-------|---------|----------|
-| 🆕 **İlk kez başlıyorum** | [Getting Started](docs/GETTING_STARTED.md) | 5 dakikada setup, öğrenme yolu, ilk katkı |
-| 🏗️ **Stratejiyi anlamak istiyorum** | [Parallel Development](docs/PARALLEL_DEVELOPMENT.md) | Neden paralel? Nasıl çalışır? Best practices |
-| 📋 **Versiyonları görmek istiyorum** | [Development Phases](docs/development-phases/README.md) | v0.1, v0.2, v0.3, v1.0 hedefleri ve görevleri |
-| ✅ **İlerlemeyi takip edeceğim** | [Development Roadmap](docs/DEVELOPMENT_ROADMAP.md) | Detaylı checklist, sprint planning, notlar |
-| ⚡ **Hızlı komutlar lazım** | [Version Quick Start](docs/VERSION_QUICKSTART.md) | Her versiyon için komutlar, troubleshooting |
+**Bug Fixes:**
+- Fixed transform operation timeout issue
+- Fixed duplicate LLM operation records
+- Improved polling mechanism
 
-👉 **Başlamak için**: [Getting Started](docs/GETTING_STARTED.md)
+[View Full Changelog](CHANGELOG.md)
 
-### Versiyon Roadmap
+### v0.4.0 - Coming Soon
 
-| Version | Hedef | Durum | Doküman |
-|---------|-------|-------|---------|
-| **v0.1** | MVP - Authentication & Basic CRUD | ✅ Complete | [Version 0.1](docs/development-phases/DEVELOPMENT_ROADMAP.md#-version-01-mvp-checklist) |
-| **v0.2** | Security & Document Management | 📋 Planned | [Version 0.2](docs/development-phases/DEVELOPMENT_ROADMAP.md#-version-02-security--document-management-checklist) |
-| **v0.2.5** | UX Polish & Internationalization | 📋 Planned | [Version 0.2.5](docs/development-phases/DEVELOPMENT_ROADMAP.md#-version-025-ux-polish--internationalization-checklist) |
-| **v0.3** | LangGraph & Chat Interface | 📋 Planned | [Version 0.3](docs/development-phases/DEVELOPMENT_ROADMAP.md#-version-03-langgraph--chat-checklist) |
-| **v1.0** | Production Ready | 📋 Planned | [Version 1.0](docs/development-phases/DEVELOPMENT_ROADMAP.md#-version-10-production-checklist) |
+**Planned Features:**
+- LangGraph integration for multi-agent workflows
+- LangSmith observability and monitoring
+- Streaming responses via Server-Sent Events (SSE)
+- Advanced RAG: reranking, hybrid search, multi-query
+- Conversation history and memory
+- Agent-based architecture
 
-### Geliştirme Fazları
+[View v0.4 Development Prompt](docs/development-phases/V0.4_LANGGRAPH_PROMPT.md)
 
-Detaylı teknik dokümanlar:
+### v1.0.0 - Production Ready
 
-- [📄 Faz 0: Altyapı Kurulumu](docs/development-phases/faz-0-kurulum.md)
-- [📄 Faz 1: Backend Temel Yapı](docs/development-phases/faz-1-backend.md)
-- [📄 Faz 2: Veritabanı & Güvenlik](docs/development-phases/faz-2-database-security.md)
-- [📄 Faz 3: LangGraph Orkestrasyon](docs/development-phases/faz-3-langgraph.md)
-- [📄 Faz 4: Frontend Geliştirme](docs/development-phases/faz-4-frontend.md)
-- [📄 Faz 5: Production Deployment](docs/development-phases/faz-5-deployment.md)
+**Target Features:**
+- Complete observability stack (Prometheus, Grafana, LangSmith)
+- Kubernetes deployment manifests
+- Production-grade monitoring and alerting
+- Performance optimizations
+- Comprehensive documentation
+- Security audit and hardening
 
-## 🏛️ Mimari Genel Bakış
+## 🏛️ Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    FRONTEND LAYER                        │
-│              Next.js + React Flow                        │
-│         (Chat UI, Workflow Editor, Dashboard)            │
-└─────────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────┐
-│                    API GATEWAY                           │
-│                   Nginx + SSL/TLS                        │
+│                Next.js 14 + shadcn/ui                    │
+│         (Document UI, RAG Operations, Settings)          │
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
 │                   BACKEND LAYER                          │
-│    FastAPI + LangGraph + LiteLLM                        │
+│              FastAPI + Background Tasks                  │
 │  ┌─────────────────────────────────────────────────┐    │
-│  │ Tenant Isolation (JWT + RLS + Middleware)       │    │
-│  │ ├── Auth Service                                │    │
-│  │ ├── Document Service (Embedding, Chunking)      │    │
-│  │ ├── Workflow Service (LangGraph)                │    │
-│  │ └── Vector Search (pgvector + Qdrant)          │    │
+│  │ Tenant Isolation (JWT + Middleware)             │    │
+│  │ ├── Auth Service (JWT, Password Hashing)        │    │
+│  │ ├── Document Service (Upload, Processing)       │    │
+│  │ ├── Embedding Service (Multi-provider)          │    │
+│  │ ├── RAG Service (Summarize, Ask, Transform)     │    │
+│  │ └── LLM Service (LiteLLM Integration)           │    │
 │  └─────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────┘
         │                 │                   │
         ↓                 ↓                   ↓
 ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
 │  PostgreSQL  │  │    Redis     │  │    Qdrant    │
-│  + pgvector  │  │  (Sessions)  │  │   (Vectors)  │
-│  + RLS       │  │              │  │              │
+│  (Main DB)   │  │  (Sessions)  │  │  (Vectors)   │
 └──────────────┘  └──────────────┘  └──────────────┘
         │
         ↓
@@ -176,30 +190,72 @@ Detaylı teknik dokümanlar:
 └──────────────┘
 ```
 
-## 🔐 Güvenlik Özellikleri
+## 🔐 Security Features
 
-### Multi-Layer Tenant Isolation
-
-1. **Database Layer**: PostgreSQL Row Level Security (RLS)
-2. **Application Layer**: Explicit tenant filtering in queries
-3. **Middleware Layer**: Tenant context injection
-4. **API Layer**: JWT-based authentication & authorization
+### Multi-Tenant Isolation
+- JWT-based authentication
+- Tenant-scoped database queries
+- API-level tenant filtering
+- Session isolation via Redis
 
 ### Secret Management
-
-- HashiCorp Vault ile güvenli secret storage
-- Tenant-specific API key isolation
+- HashiCorp Vault for API keys
+- Tenant-specific secret storage
+- No secrets in code or .env files
 - Automatic secret rotation support
-- No secrets in code or environment variables
 
 ### Data Security
+- Encrypted connections (TLS/SSL ready)
+- Secure password hashing (pwdlib with Argon2)
+- Audit logging for critical operations
+- GDPR-compliant data handling
 
-- Encryption at rest (PostgreSQL)
-- Encryption in transit (TLS/SSL)
-- Audit logging tüm kritik operasyonlar için
-- GDPR-compliant data retention policies
+## 📖 API Documentation
 
-## 🧪 Test ve Kalite
+### RAG Operations
+
+#### Summarize Document
+```bash
+POST /api/v1/llm/documents/summarize
+{
+  "document_id": "uuid",
+  "model": "llama3.2",  # optional
+  "max_length": 500,     # optional
+  "force": false         # optional
+}
+```
+
+#### Ask Question
+```bash
+POST /api/v1/llm/documents/ask
+{
+  "document_id": "uuid",
+  "question": "What is this document about?",
+  "model": "llama3.2",  # optional
+  "max_chunks": 5        # optional
+}
+```
+
+#### Transform Document
+```bash
+POST /api/v1/llm/documents/transform
+{
+  "document_id": "uuid",
+  "instruction": "Translate to Turkish",
+  "model": "llama3.2",        # optional
+  "output_format": "text"     # text, markdown, json
+}
+```
+
+All operations return immediately with an `operation_id`. Use polling to check status:
+
+```bash
+GET /api/v1/llm/operations/{operation_id}
+```
+
+[Full API Documentation](http://localhost:8000/docs)
+
+## 🧪 Testing
 
 ```bash
 # Backend tests
@@ -211,122 +267,93 @@ cd frontend
 npm run test
 npm run type-check
 
-# Integration tests
-docker-compose -f docker-compose.test.yml up --abort-on-container-exit
+# Linting
+black backend/app
+isort backend/app
+flake8 backend/app
 ```
 
-## 📊 Monitoring & Logging
-
-- **Structured Logging**: structlog ile JSON formatted logs
-- **Metrics**: Prometheus ile custom metrics
-- **Visualization**: Grafana dashboards
-- **Tracing**: Request tracing (gelecek)
-- **Alerting**: Alert rules for critical events
-
-## 🤝 Katkıda Bulunma
-
-1. Fork edin
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Değişikliklerinizi commit edin (`git commit -m 'feat: add amazing feature'`)
-4. Branch'inizi push edin (`git push origin feature/amazing-feature`)
-5. Pull Request oluşturun
-
-### Commit Conventions
-
-Conventional Commits kullanıyoruz:
-
-```
-feat: yeni özellik
-fix: bug düzeltme
-docs: dokümantasyon değişikliği
-style: kod formatı (logic değişikliği yok)
-refactor: kod refactoring
-test: test ekleme/düzeltme
-chore: build process, dependency updates
-```
-
-## 📖 Proje Yapısı
+## 📊 Project Structure
 
 ```
 langorch/
-├── backend/                       # Backend kaynak kodları
+├── backend/
 │   ├── app/
-│   │   ├── main.py               # FastAPI application
-│   │   ├── core/                 # Core modules (config, database, security)
-│   │   ├── models/               # SQLAlchemy models
-│   │   ├── schemas/              # Pydantic schemas
-│   │   ├── api/                  # API endpoints
-│   │   ├── services/             # Business logic
-│   │   ├── workflows/            # LangGraph workflows
-│   │   └── middleware/           # Middleware (tenant, logging, etc.)
-│   ├── alembic/                  # Database migrations
-│   ├── tests/                    # Backend tests
-│   └── requirements.txt          # Python dependencies
-│
-├── frontend/                      # Frontend kaynak kodları
-│   ├── src/
-│   │   ├── app/                  # Next.js app directory
-│   │   ├── components/           # React components
-│   │   ├── lib/                  # Utilities & API client
-│   │   └── stores/               # Zustand stores
-│   ├── public/                   # Static assets
-│   └── package.json              # Node dependencies
-│
-├── docs/                          # Dokümantasyon
-│   ├── development-phases/       # Faz dokümantasyonları
-│   ├── architecture/             # Mimari dokümanlar
-│   └── api/                      # API dokümantasyonu
-│
-├── infrastructure/                # Infrastructure as Code
-│   ├── docker/                   # Dockerfiles
-│   ├── k8s/                      # Kubernetes manifests
-│   └── terraform/                # Terraform configs
-│
-├── docker-compose.yml            # Development environment
-├── .env.example                  # Environment variables template
-└── README.md                     # Bu dosya
+│   │   ├── main.py                    # FastAPI application
+│   │   ├── api/
+│   │   │   └── v1/endpoints/          # API endpoints
+│   │   ├── core/                      # Config, database, vault
+│   │   ├── models/                    # SQLAlchemy models
+│   │   ├── schemas/                   # Pydantic schemas
+│   │   └── services/                  # Business logic
+│   ├── alembic/                       # Database migrations
+│   └── requirements.txt
+├── frontend/
+│   ├── app/                           # Next.js app router
+│   ├── components/                    # React components
+│   ├── lib/                           # API client, utilities
+│   └── package.json
+├── docs/                              # Documentation
+├── .github/                           # GitHub workflows
+├── docker-compose.yml
+├── VERSION                            # Current version
+├── CHANGELOG.md                       # Version history
+└── README.md
 ```
 
-## 🌟 Use Cases
+## 🤝 Contributing
 
-### 1. Customer Support RAG System
-- Multi-tenant document management
-- Semantic search ile knowledge base
-- Human-in-loop approvals
-- Custom workflows per tenant
+We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
-### 2. Enterprise Document Intelligence
-- Secure document upload & processing
-- Advanced embeddings & chunking
-- Cross-document semantic search
-- Tenant-isolated data
+```bash
+feat: add new feature
+fix: bug fix
+docs: documentation changes
+refactor: code refactoring
+test: adding or updating tests
+chore: maintenance tasks
+```
 
-### 3. AI Agent Orchestration
-- LangGraph ile complex workflows
-- Multi-step reasoning
-- Tool integration
-- Real-time streaming responses
+### Git Workflow
 
-## 📝 Lisans
+See [Branching Strategy](.github/BRANCHING_STRATEGY.md) for details.
 
-[Lisans bilgisi eklenecek]
+```bash
+# Create feature branch
+git checkout develop/v0.4
+git checkout -b feature/my-feature
 
-## 👥 İletişim
+# Commit changes
+git add .
+git commit -m "feat: add amazing feature"
 
-[İletişim bilgileri eklenecek]
+# Push and create PR
+git push origin feature/my-feature
+```
 
-## 🙏 Teşekkürler
+## 📝 License
 
-Bu proje aşağıdaki açık kaynak projeleri kullanır:
+[License information to be added]
+
+## 👥 Contact
+
+[Contact information to be added]
+
+## 🙏 Acknowledgments
+
+Built with these amazing open-source projects:
 
 - [FastAPI](https://fastapi.tiangolo.com/)
-- [LangGraph](https://github.com/langchain-ai/langgraph)
+- [LiteLLM](https://github.com/BerriAI/litellm)
+- [Qdrant](https://qdrant.tech/)
 - [Next.js](https://nextjs.org/)
-- [React Flow](https://reactflow.dev/)
 - [shadcn/ui](https://ui.shadcn.com/)
+- [HashiCorp Vault](https://www.vaultproject.io/)
 
 ---
 
-**Not**: Bu proje aktif geliştirme aşamasındadır. Production kullanımı için [Version 1.0](docs/development-phases/README.md#-version-10-production-ready) beklenmesi önerilir.
+**Current Status**: v0.3.0 - Production ready for basic RAG operations
 
-**Geliştirmeye başlamak için**: [Geliştirme Dokümanları](docs/development-phases/README.md)
+**Next Up**: v0.4.0 - LangGraph integration and streaming responses
+
+For detailed development information, see [Development Phases](docs/development-phases/)
