@@ -31,12 +31,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Duplicate LLM operation records in database
 - Summary caching mechanism for better performance
 
-## [Unreleased] - v0.4.0
+## [0.4.0] - 2026-01-12
+
+### Added - LangGraph Workflow Orchestration
+- **LangGraph StateGraph**: Dynamic workflow orchestration with JSON configuration
+- **Chat Interface**: Real-time conversational UI with message history and SSE streaming
+- **Human-in-the-Loop (HITL)**: Workflow approval points with interrupt/resume capability
+- **PostgresSaver Checkpoints**: State persistence across sessions with automatic resume
+- **Workflow Templates**: Pre-built RAG and Simple Chat workflows
+- **Multi-Provider Streaming**: Real-time responses from Ollama, OpenAI, Anthropic
+- **Session Management**: Conversation tracking with thread-based state isolation
+- **Workflow Nodes**: LLM, Retriever, Relevance Grader, Hallucination Checker, HITL
+- **SSE Streaming API**: Server-Sent Events for progressive response generation
+- **Floating Approval Panel**: Auto-polling UI for pending HITL approvals
+
+### Backend
+- 5 new database tables: `workflows`, `workflow_executions`, `conversation_sessions`, `messages`, `hitl_approvals`
+- WorkflowExecutionService with execute, stream, and resume methods
+- 8 new workflow API endpoints (execute, stream, resume, sessions, messages)
+- 4 new HITL API endpoints (list, get, respond, filter)
+- CheckpointManager with PostgreSQL connection pooling
+- Workflow builder with JSON-to-StateGraph conversion
+- Node registry system for dynamic workflow construction
+
+### Frontend
+- ChatInterface component with real-time streaming
+- Chat page with session list and management
+- ApprovalPanel component with auto-polling
+- ScrollArea UI component integration
+- Workflow templates helper (RAG, Simple Chat)
+- Full i18n support (English, Turkish)
+- Dark/light mode compatible components
+- Zero lint errors, production-ready code
+
+### Changed
+- Updated navigation with Chat link
+- Enhanced API client with SSE streaming helper
+- Extended TypeScript types for v0.4 features
+
+## [Unreleased] - v0.5.0
 
 ### Planned
-- LangGraph integration for multi-agent workflows
+- Multi-agent collaboration and communication
+- External tool integration (API calls, web scraping)
 - LangSmith observability and monitoring
 - Advanced RAG: reranking, hybrid search, multi-query
-- Streaming responses (SSE)
-- Conversation history and memory
-- Agent-based architecture
+- Workflow marketplace for sharing templates

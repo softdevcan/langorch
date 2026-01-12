@@ -1,38 +1,54 @@
 # LangOrch
-**Multi-Tenant RAG Platform with Async Operations**
+**Multi-Tenant RAG Platform with LangGraph Orchestration**
 
-🚀 Production-ready, multi-tenant RAG orchestration platform with background task processing
+🚀 Production-ready, multi-tenant RAG orchestration platform with advanced workflow capabilities
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![Next.js](https://img.shields.io/badge/next.js-14%2B-black.svg)](https://nextjs.org/)
-[![Version](https://img.shields.io/badge/version-0.3.0-green.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-0.4.0-green.svg)](VERSION)
 
 ## 🎯 About LangOrch
 
 LangOrch is a **multi-tenant SaaS platform** for **Retrieval-Augmented Generation (RAG)** with enterprise-grade features:
 
-- ✅ **Production-Ready v0.3.0**: Async operations, smart caching, timeout-free processing
+- ✅ **Production-Ready v0.4.0**: LangGraph workflows, real-time streaming, HITL capabilities
+- 🔀 **Workflow Orchestration**: Dynamic workflow creation with LangGraph StateGraph
+- 💬 **Real-Time Chat**: Streaming responses with SSE, conversation history
+- 👤 **Human-in-the-Loop**: Workflow approval points with interrupt/resume
 - 🏢 **Multi-Tenant Architecture**: Complete data isolation per tenant
 - 🤖 **Multi-Provider LLM**: OpenAI, Anthropic, Ollama support via LiteLLM
 - 📊 **Vector Search**: Qdrant integration for semantic document search
 - 🔐 **Enterprise Security**: HashiCorp Vault, JWT auth, tenant isolation
-- ⚡ **Background Processing**: No timeouts on long-running operations (10+ minutes)
+- ⚡ **State Persistence**: PostgresSaver checkpoints for workflow resume
 
-## ✨ Current Features (v0.3.0)
+## ✨ Current Features (v0.4.0)
 
-### Document RAG Operations
+### LangGraph Workflow Orchestration
+- **Dynamic Workflows**: JSON-configured workflows with StateGraph
+- **Workflow Nodes**: LLM, Retriever, Relevance Grader, Hallucination Checker, HITL
+- **Conditional Routing**: Complex logic with conditional edges
+- **State Persistence**: PostgresSaver checkpoints for workflow resume
+- **Workflow Templates**: Pre-built RAG and Simple Chat workflows
+
+### Real-Time Chat Interface
+- **Streaming Responses**: SSE-based progressive response generation
+- **Conversation History**: Multi-turn conversations with message persistence
+- **Session Management**: Thread-based state isolation per tenant
+- **Multi-Provider Support**: Ollama, OpenAI, Anthropic with automatic fallback
+
+### Human-in-the-Loop (HITL)
+- **Approval Points**: Pause workflows for human review
+- **Interrupt/Resume**: Workflows can be paused and continued
+- **Hallucination Detection**: Auto-detect low-quality responses for review
+- **Floating UI**: Auto-polling approval panel in dashboard
+
+### Document RAG Operations (v0.3)
 - **Summarize**: Generate concise document summaries with smart caching
 - **Ask**: Question-answering with RAG (vector search + LLM)
 - **Transform**: Document transformation (translate, format, extract, etc.)
-
-### Core Capabilities
 - **Async Background Tasks**: All LLM operations run in background with polling
-- **Smart Summary Caching**: Reuse existing summaries, optional force regeneration
 - **Multi-Provider Embedding**: OpenAI, Google Gemini, Anthropic Claude, Ollama
-- **Dynamic Embedding Dimensions**: Support for different embedding models
-- **Tenant Configuration**: Per-tenant LLM and embedding provider settings
-- **Document Management**: Upload, process, chunk, and embed PDF/DOCX files
 
 ## 🏗️ Tech Stack
 
