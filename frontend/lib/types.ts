@@ -268,3 +268,126 @@ export interface LLMOperation {
   created_at: string;
   completed_at: string | null;
 }
+
+// ========== v0.4: LangGraph Workflow Types ==========
+
+export interface WorkflowNode {
+  id: string;
+  type: 'llm' | 'retriever' | 'tool' | 'human_in_loop' | 'rag_generator' | 'relevance_grader' | 'hallucination_checker';
+  config: Record<string, any>;
+}
+
+export interface WorkflowEdge {
+  source: string;
+  target: string;
+  condition?: string;
+  mapping?: Record<string, string>;
+}
+
+export interface WorkflowConfig {
+  name: string;
+  version: string;
+  description: string;
+  state_schema?: any;
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+}
+
+export interface Workflow {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  name: string;
+  description: string;
+  workflow_config: WorkflowConfig;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkflowExecution {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  workflow_id: string | null;
+  thread_id: string;
+  status: 'running' | 'completed' | 'failed' | 'interrupted';
+  input_data: any;
+  output_data: any;
+  error_message: string | null;
+  started_at: string;
+  completed_at: string | null;
+}
+
+export interface WorkflowExecuteRequest {
+  workflow_config: WorkflowConfig;
+  user_input: string;
+  session_id?: string;
+  workflow_id?: string;
+}
+
+export interface WorkflowExecuteResponse {
+  session_id: string;
+  execution_id: string;
+  status: string;
+  result?: any;
+  error?: string;
+}
+
+export interface WorkflowResumeRequest {
+  session_id: string;
+  user_response: Record<string, any>;
+}
+
+// ========== Chat/Conversation Types ==========
+
+export interface ConversationSession {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  workflow_id: string | null;
+  thread_id: string;
+  title: string | null;
+  metadata: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Message {
+  id: string;
+  session_id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  metadata: Record<string, any>;
+  created_at: string;
+}
+
+export interface ConversationSessionCreate {
+  workflow_id?: string;
+  title?: string;
+}
+
+export interface MessageCreate {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+// ========== HITL Types ==========
+
+export interface HITLApproval {
+  id: string;
+  execution_id: string;
+  tenant_id: string;
+  user_id: string;
+  prompt: string;
+  context_data: any;
+  status: 'pending' | 'approved' | 'rejected';
+  user_response: any;
+  created_at: string;
+  responded_at: string | null;
+}
+
+export interface HITLApprovalRespondRequest {
+  approved: boolean;
+  feedback?: string;
+}
