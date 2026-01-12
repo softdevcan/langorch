@@ -211,6 +211,10 @@ class WorkflowBuilder:
             from app.workflows.nodes.hitl_nodes import create_hallucination_check_node
             return create_hallucination_check_node(config)
 
+        elif node_type == "router":
+            from app.workflows.nodes.router_node import create_router_node
+            return create_router_node(config)
+
         else:
             raise ValueError(f"Unknown node type: {node_type}")
 
@@ -239,6 +243,10 @@ class WorkflowBuilder:
 
         elif condition_id == "approved":
             return lambda state: "approved" if state.get("approved", False) else "rejected"
+
+        elif condition_id == "route_decision":
+            from app.workflows.nodes.router_node import route_condition
+            return route_condition
 
         else:
             raise ValueError(f"Unknown condition: {condition_id}")

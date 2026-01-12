@@ -37,6 +37,23 @@ class WorkflowState(TypedDict):
     error: Optional[str]
 
 
+class UnifiedWorkflowState(WorkflowState):
+    """
+    Unified workflow state for v0.4.1
+
+    Extends WorkflowState with routing decision fields for intelligent
+    query routing between direct chat and RAG paths.
+    """
+    # Routing fields (v0.4.1)
+    route_decision: Optional[str]  # "direct_chat" | "rag_needed" | "hybrid"
+    route_confidence: float  # 0.0-1.0
+    routing_metadata: Dict[str, Any]  # Reasoning for decision
+
+    # Session context (v0.4.1)
+    session_context: Dict[str, Any]  # Full session metadata
+    active_documents: List[Dict[str, Any]]  # Loaded document objects
+
+
 class RAGState(WorkflowState):
     """
     Extended state for RAG (Retrieval-Augmented Generation) workflows
