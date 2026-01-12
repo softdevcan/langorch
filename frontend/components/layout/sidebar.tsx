@@ -10,7 +10,8 @@ import {
   Settings,
   Building2,
   LogOut,
-  FileText
+  FileText,
+  MessageSquare
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { UserRole } from "@/lib/types";
@@ -27,6 +28,11 @@ const navItems: NavItem[] = [
     titleKey: "dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    titleKey: "chat",
+    href: "/dashboard/chat",
+    icon: MessageSquare,
   },
   {
     titleKey: "documents",

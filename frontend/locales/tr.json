@@ -1,6 +1,7 @@
 {
   "nav": {
     "dashboard": "Gösterge Paneli",
+    "chat": "Sohbet",
     "users": "Kullanıcılar",
     "documents": "Dokümanlar",
     "tenants": "Kiracılar",
@@ -97,5 +98,30 @@
     "success": "Başarılı",
     "warning": "Uyarı",
     "info": "Bilgi"
+  },
+  "chat": {
+    "title": "Sohbet",
+    "newChat": "Yeni Sohbet",
+    "conversations": "Konuşmalar",
+    "typeMessage": "Mesaj yazın...",
+    "send": "Gönder",
+    "untitledChat": "İsimsiz Sohbet",
+    "selectConversation": "Bir konuşma seçin veya yeni bir tane oluşturun",
+    "streaming": "Yanıt oluşturuluyor...",
+    "failed": "Mesaj gönderilemedi",
+    "createFailed": "Sohbet oturumu oluşturulamadı",
+    "loadFailed": "Konuşmalar yüklenemedi",
+    "messagesFailed": "Mesajlar yüklenemedi",
+    "thinking": "Düşünüyor..."
+  },
+  "hitl": {
+    "title": "Bekleyen Onaylar",
+    "approve": "Onayla",
+    "reject": "Reddet",
+    "feedback": "Opsiyonel geri bildirim...",
+    "noApprovals": "Bekleyen onay yok",
+    "approved": "Onaylandı!",
+    "rejected": "Reddedildi",
+    "respondFailed": "Yanıt verilemedi"
   }
 }

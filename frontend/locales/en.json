@@ -1,6 +1,7 @@
 {
   "nav": {
     "dashboard": "Dashboard",
+    "chat": "Chat",
     "users": "Users",
     "documents": "Documents",
     "tenants": "Tenants",
@@ -97,5 +98,30 @@
     "success": "Success",
     "warning": "Warning",
     "info": "Info"
+  },
+  "chat": {
+    "title": "Chat",
+    "newChat": "New Chat",
+    "conversations": "Conversations",
+    "typeMessage": "Type a message...",
+    "send": "Send",
+    "untitledChat": "Untitled Chat",
+    "selectConversation": "Select a conversation or create a new one",
+    "streaming": "Generating response...",
+    "failed": "Failed to send message",
+    "createFailed": "Failed to create chat session",
+    "loadFailed": "Failed to load conversations",
+    "messagesFailed": "Failed to load messages",
+    "thinking": "Thinking..."
+  },
+  "hitl": {
+    "title": "Pending Approvals",
+    "approve": "Approve",
+    "reject": "Reject",
+    "feedback": "Optional feedback...",
+    "noApprovals": "No pending approvals",
+    "approved": "Approved!",
+    "rejected": "Rejected",
+    "respondFailed": "Failed to respond"
   }
 }
