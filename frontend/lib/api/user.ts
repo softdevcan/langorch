@@ -17,7 +17,7 @@ export interface PasswordChangeData {
  * Get current user's preferences
  */
 export async function getUserPreferences(token: string) {
-  const response = await axios.get(`${API_URL}/api/v1/users/me/preferences`, {
+  const response = await axios.get(`${API_URL}/users/me/preferences`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -33,7 +33,7 @@ export async function updateUserPreferences(
   preferences: UserPreferences
 ) {
   const response = await axios.put(
-    `${API_URL}/api/v1/users/me/preferences`,
+    `${API_URL}/users/me/preferences`,
     preferences,
     {
       headers: {
@@ -52,7 +52,7 @@ export async function changePassword(
   passwordData: PasswordChangeData
 ) {
   const response = await axios.put(
-    `${API_URL}/api/v1/users/me/password`,
+    `${API_URL}/users/me/password`,
     passwordData,
     {
       headers: {

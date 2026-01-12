@@ -28,5 +28,5 @@ api_router.include_router(settings.router, prefix="/settings")  # Settings endpo
 api_router.include_router(llm_operations.router)  # LLM operations endpoints
 
 # v0.4 - LangGraph workflow orchestration
-api_router.include_router(workflows.router)  # Workflow execution & sessions
-api_router.include_router(hitl.router)  # Human-in-the-Loop approvals
+api_router.include_router(workflows.router, prefix="/workflows")  # Workflow execution & sessions
+api_router.include_router(hitl.router, prefix="/hitl")  # Human-in-the-Loop approvals

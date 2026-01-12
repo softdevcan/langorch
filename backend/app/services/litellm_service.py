@@ -5,6 +5,7 @@ import structlog
 from litellm import acompletion, cost_per_token
 
 from app.core.vault_client import vault_client
+from app.core.config import settings
 
 logger = structlog.get_logger()
 
@@ -17,9 +18,10 @@ class LiteLLMService:
     (Advanced features moved to Version 0.4)
     """
 
-    def __init__(self, tenant_id: UUID, provider: Optional[str] = None):
+    def __init__(self, tenant_id: UUID, provider: Optional[str] = None, tenant_config: Optional[Dict] = None):
         self.tenant_id = tenant_id
         self.provider = provider
+        self.tenant_config = tenant_config or {}
         self.api_keys = self._load_api_keys()
 
     def _load_api_keys(self) -> Dict[str, str]:
@@ -86,20 +88,39 @@ class LiteLLMService:
             }
         """
         try:
-            # Prepare API key and base URL based on model
+            # Prepare API key and base URL based on tenant config or model
             api_key = None
             api_base = None
 
-            if model.startswith("gpt"):
-                api_key = self.api_keys.get("openai_api_key")
-            elif model.startswith("claude"):
-                api_key = self.api_keys.get("anthropic_api_key")
-            elif model.startswith("ollama/") or model.startswith("llama") or model.startswith("mistral"):
-                # Ollama models - use local Ollama server
-                api_base = "http://localhost:11434"
-                # Ensure model has ollama/ prefix for LiteLLM
-                if not model.startswith("ollama/"):
-                    model = f"ollama/{model}"
+            # Use tenant config if available
+            if self.tenant_config:
+                # Get base URL from tenant config (for Ollama)
+                api_base = self.tenant_config.get("base_url") or self.tenant_config.get("api_base")
+
+                # Get model from tenant config if not specified
+                if not model or model == "auto":
+                    model = self.tenant_config.get("model", "ollama/llama2")
+
+                # Get API key from tenant config if available
+                if "api_key" in self.tenant_config:
+                    api_key = self.tenant_config["api_key"]
+
+            # Fallback to model-based detection if no tenant config
+            if not api_base:
+                if model.startswith("gpt"):
+                    api_key = self.api_keys.get("openai_api_key")
+                elif model.startswith("claude"):
+                    api_key = self.api_keys.get("anthropic_api_key")
+                elif model.startswith("ollama/") or model.startswith("llama") or model.startswith("mistral"):
+                    # Ollama models - use from settings
+                    api_base = settings.OLLAMA_BASE_URL
+                    # Ensure model has ollama/ prefix for LiteLLM
+                    if not model.startswith("ollama/"):
+                        model = f"ollama/{model}"
+
+            # Ensure ollama/ prefix for Ollama models
+            if api_base and "11434" in api_base and not model.startswith("ollama/"):
+                model = f"ollama/{model}"
 
             logger.info(
                 "llm_completion_request",

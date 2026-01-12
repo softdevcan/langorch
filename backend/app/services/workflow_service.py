@@ -50,6 +50,41 @@ class WorkflowExecutionService:
             checkpointer = await checkpoint_manager.get_checkpointer()
             self.builder = WorkflowBuilder(checkpointer)
 
+    def _serialize_event(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Serialize event for JSON compatibility
+
+        Converts LangChain message objects to dictionaries so they can be
+        JSON serialized for streaming over SSE.
+
+        Args:
+            event: Event dictionary from LangGraph stream
+
+        Returns:
+            Serialized event dictionary
+        """
+        from langchain_core.messages import BaseMessage
+
+        def serialize_value(value):
+            """Recursively serialize values"""
+            if isinstance(value, BaseMessage):
+                # Convert LangChain message to dict
+                return {
+                    "type": value.__class__.__name__,
+                    "content": value.content,
+                    "additional_kwargs": value.additional_kwargs
+                }
+            elif isinstance(value, dict):
+                return {k: serialize_value(v) for k, v in value.items()}
+            elif isinstance(value, list):
+                return [serialize_value(item) for item in value]
+            elif isinstance(value, UUID):
+                return str(value)
+            else:
+                return value
+
+        return serialize_value(event)
+
     async def execute_workflow(
         self,
         workflow_config: Dict[str, Any],
@@ -242,10 +277,12 @@ class WorkflowExecutionService:
 
                 # Stream execution
                 async for event in compiled_graph.astream(initial_state, config, stream_mode="updates"):
+                    # Serialize event for JSON compatibility
+                    serialized_event = self._serialize_event(event)
                     yield {
                         "session_id": session_id,
                         "execution_id": str(execution.id),
-                        "event": event
+                        "event": serialized_event
                     }
 
                 # Mark as completed

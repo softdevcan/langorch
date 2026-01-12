@@ -7,12 +7,14 @@ from typing import Dict, Any, Callable
 from uuid import UUID
 from langchain_core.messages import HumanMessage
 import structlog
+from sqlalchemy import select
 
 from app.workflows.state import WorkflowState
 from app.services.document_service import DocumentService
 from app.schemas.document import DocumentSearchRequest
 from app.services.litellm_service import LiteLLMService
 from app.core.database import AsyncSessionLocal
+from app.models.tenant import Tenant
 
 logger = structlog.get_logger()
 
@@ -205,8 +207,22 @@ def create_relevance_grader_node(config: Dict[str, Any]) -> Callable:
             return state  # No query, pass through
 
         try:
-            # Initialize LLM service
-            llm_service = LiteLLMService(tenant_id=tenant_id, provider=provider)
+            # Load tenant LLM config from database
+            tenant_llm_config = None
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(
+                    select(Tenant).where(Tenant.id == tenant_id)
+                )
+                tenant = result.scalar_one_or_none()
+                if tenant:
+                    tenant_llm_config = tenant.llm_config or {}
+
+            # Initialize LLM service with tenant config
+            llm_service = LiteLLMService(
+                tenant_id=tenant_id,
+                provider=provider,
+                tenant_config=tenant_llm_config
+            )
 
             graded_docs = []
             relevance_scores = []

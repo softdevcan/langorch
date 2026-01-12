@@ -14,7 +14,7 @@ export const settingsApi = {
    */
   getEmbeddingProvider: async (): Promise<EmbeddingProviderResponse> => {
     const response = await apiClient.get<EmbeddingProviderResponse>(
-      "/api/v1/settings/embedding-provider"
+      "/settings/embedding-provider"
     );
     return response.data;
   },
@@ -26,7 +26,7 @@ export const settingsApi = {
     data: EmbeddingProviderUpdate
   ): Promise<EmbeddingProviderResponse> => {
     const response = await apiClient.put<EmbeddingProviderResponse>(
-      "/api/v1/settings/embedding-provider",
+      "/settings/embedding-provider",
       data
     );
     return response.data;
@@ -39,7 +39,7 @@ export const settingsApi = {
     data: EmbeddingProviderTest
   ): Promise<EmbeddingProviderTestResponse> => {
     const response = await apiClient.post<EmbeddingProviderTestResponse>(
-      "/api/v1/settings/embedding-provider/test",
+      "/settings/embedding-provider/test",
       data
     );
     return response.data;
@@ -50,7 +50,7 @@ export const settingsApi = {
    */
   getLLMProvider: async (): Promise<LLMProviderResponse> => {
     const response = await apiClient.get<LLMProviderResponse>(
-      "/api/v1/settings/llm-provider"
+      "/settings/llm-provider"
     );
     return response.data;
   },
@@ -62,7 +62,7 @@ export const settingsApi = {
     data: LLMProviderUpdate
   ): Promise<LLMProviderResponse> => {
     const response = await apiClient.put<LLMProviderResponse>(
-      "/api/v1/settings/llm-provider",
+      "/settings/llm-provider",
       data
     );
     return response.data;

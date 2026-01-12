@@ -2,12 +2,16 @@
 Embedding service - Text chunking and embedding generation
 """
 from typing import List, Dict, Any, Optional
+from uuid import UUID
 import tiktoken
 from openai import AsyncOpenAI
 import structlog
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.core.vault import vault_client
+from app.core.database import AsyncSessionLocal
+from app.models.tenant import Tenant
 
 logger = structlog.get_logger()
 
@@ -142,68 +146,118 @@ class EmbeddingService:
         model: Optional[str] = None,
     ) -> Optional[List[float]]:
         """
-        Generate embedding vector for text using OpenAI
+        Generate embedding vector for text using tenant's configured provider
 
         Args:
             text: Input text
-            tenant_id: Tenant UUID (to fetch API key from Vault)
-            model: OpenAI model name (default from settings)
+            tenant_id: Tenant UUID (to fetch config from database)
+            model: Model name (optional, will use tenant config if not provided)
 
         Returns:
             Embedding vector (list of floats) or None if failed
         """
         try:
-            # Try to get tenant's OpenAI API key from Vault
-            api_key = None
-            try:
-                api_key = await vault_client.get_tenant_secret(
-                    tenant_id=tenant_id,
-                    secret_key="openai_api_key",
+            # Load tenant embedding config from database
+            tenant_embedding_config = None
+            tenant_embedding_provider = "openai"  # Default
+
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(
+                    select(Tenant).where(Tenant.id == UUID(tenant_id))
                 )
-            except Exception as vault_error:
-                logger.warning(
-                    "vault_api_key_retrieval_failed_using_fallback",
-                    tenant_id=tenant_id,
-                    error=str(vault_error),
+                tenant = result.scalar_one_or_none()
+                if tenant:
+                    tenant_embedding_config = tenant.embedding_config or {}
+                    tenant_embedding_provider = tenant.embedding_provider
+
+            # Determine provider and settings
+            provider = tenant_embedding_provider
+            base_url = tenant_embedding_config.get("base_url") if tenant_embedding_config else None
+            api_key = tenant_embedding_config.get("api_key") if tenant_embedding_config else None
+            model = model or (tenant_embedding_config.get("model") if tenant_embedding_config else None)
+
+            # Ollama provider
+            if provider == "ollama":
+                base_url = base_url or settings.OLLAMA_BASE_URL
+                model = model or "nomic-embed-text"  # Default Ollama embedding model
+
+                # Ensure base_url has /v1 suffix for OpenAI-compatible API
+                if not base_url.endswith('/v1'):
+                    base_url = f"{base_url.rstrip('/')}/v1"
+
+                # Ollama uses OpenAI-compatible API
+                client = AsyncOpenAI(
+                    api_key="ollama",  # Ollama doesn't need real key
+                    base_url=base_url
                 )
 
-            # Fallback to global API key from settings
-            if not api_key:
-                api_key = settings.OPENAI_API_KEY
-                if api_key:
-                    logger.info(
-                        "using_fallback_openai_api_key",
+                response = await client.embeddings.create(
+                    input=text,
+                    model=model,
+                )
+
+                embedding = response.data[0].embedding
+
+                logger.info(
+                    "embedding_generated",
+                    tenant_id=tenant_id,
+                    provider=provider,
+                    model=model,
+                    text_length=len(text),
+                    embedding_dim=len(embedding),
+                )
+
+                return embedding
+
+            # OpenAI provider (default)
+            else:
+                # Try to get API key from config or Vault
+                if not api_key:
+                    try:
+                        api_key = await vault_client.get_tenant_secret(
+                            tenant_id=tenant_id,
+                            secret_key="openai_api_key",
+                        )
+                    except Exception as vault_error:
+                        logger.warning(
+                            "vault_api_key_retrieval_failed",
+                            tenant_id=tenant_id,
+                            error=str(vault_error),
+                        )
+
+                # Fallback to global API key from settings
+                if not api_key:
+                    api_key = settings.OPENAI_API_KEY
+
+                if not api_key:
+                    logger.error(
+                        "openai_api_key_not_found",
                         tenant_id=tenant_id,
                     )
+                    raise ValueError(f"OpenAI API key not found for tenant {tenant_id}")
 
-            if not api_key:
-                logger.error(
-                    "openai_api_key_not_found",
-                    tenant_id=tenant_id,
+                # Initialize OpenAI client
+                client = AsyncOpenAI(api_key=api_key)
+
+                # Generate embedding
+                model = model or settings.EMBEDDING_MODEL
+                response = await client.embeddings.create(
+                    input=text,
+                    model=model,
                 )
-                raise ValueError(f"OpenAI API key not found for tenant {tenant_id}")
 
-            # Initialize OpenAI client
-            client = AsyncOpenAI(api_key=api_key)
+                embedding = response.data[0].embedding
 
-            # Generate embedding
-            model = model or settings.EMBEDDING_MODEL
-            response = await client.embeddings.create(
-                input=text,
-                model=model,
-            )
+                logger.info(
+                    "embedding_generated",
+                    tenant_id=tenant_id,
+                    provider=provider,
+                    model=model,
+                    text_length=len(text),
+                    embedding_dim=len(embedding),
+                )
 
-            embedding = response.data[0].embedding
-
-            logger.info(
-                "embedding_generated",
-                tenant_id=tenant_id,
-                model=model,
-                text_length=len(text),
-                embedding_dim=len(embedding),
-            )
-
-            return embedding
+                return embedding
 
         except Exception as e:
             logger.error(
@@ -225,63 +279,112 @@ class EmbeddingService:
         Args:
             texts: List of input texts
             tenant_id: Tenant UUID
-            model: OpenAI model name
+            model: Model name (optional, will use tenant config if not provided)
 
         Returns:
             List of embedding vectors (same order as input)
         """
         try:
-            # Try to get tenant's OpenAI API key from Vault
-            api_key = None
-            try:
-                api_key = await vault_client.get_tenant_secret(
-                    tenant_id=tenant_id,
-                    secret_key="openai_api_key",
+            # Load tenant embedding config from database
+            tenant_embedding_config = None
+            tenant_embedding_provider = "openai"  # Default
+
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(
+                    select(Tenant).where(Tenant.id == UUID(tenant_id))
                 )
-            except Exception as vault_error:
-                logger.warning(
-                    "vault_api_key_retrieval_failed_using_fallback",
-                    tenant_id=tenant_id,
-                    error=str(vault_error),
+                tenant = result.scalar_one_or_none()
+                if tenant:
+                    tenant_embedding_config = tenant.embedding_config or {}
+                    tenant_embedding_provider = tenant.embedding_provider
+
+            # Determine provider and settings
+            provider = tenant_embedding_provider
+            base_url = tenant_embedding_config.get("base_url") if tenant_embedding_config else None
+            api_key = tenant_embedding_config.get("api_key") if tenant_embedding_config else None
+            model = model or (tenant_embedding_config.get("model") if tenant_embedding_config else None)
+
+            # Ollama provider
+            if provider == "ollama":
+                base_url = base_url or settings.OLLAMA_BASE_URL
+                model = model or "nomic-embed-text"
+
+                # Ensure base_url has /v1 suffix for OpenAI-compatible API
+                if not base_url.endswith('/v1'):
+                    base_url = f"{base_url.rstrip('/')}/v1"
+
+                # Ollama uses OpenAI-compatible API
+                client = AsyncOpenAI(
+                    api_key="ollama",
+                    base_url=base_url
                 )
 
-            # Fallback to global API key from settings
-            if not api_key:
-                api_key = settings.OPENAI_API_KEY
-                if api_key:
-                    logger.info(
-                        "using_fallback_openai_api_key_batch",
+                response = await client.embeddings.create(
+                    input=texts,
+                    model=model,
+                )
+
+                embeddings = [item.embedding for item in response.data]
+
+                logger.info(
+                    "batch_embeddings_generated",
+                    tenant_id=tenant_id,
+                    provider=provider,
+                    model=model,
+                    batch_size=len(texts),
+                )
+
+                return embeddings
+
+            # OpenAI provider (default)
+            else:
+                # Try to get API key from config or Vault
+                if not api_key:
+                    try:
+                        api_key = await vault_client.get_tenant_secret(
+                            tenant_id=tenant_id,
+                            secret_key="openai_api_key",
+                        )
+                    except Exception as vault_error:
+                        logger.warning(
+                            "vault_api_key_retrieval_failed",
+                            tenant_id=tenant_id,
+                            error=str(vault_error),
+                        )
+
+                # Fallback to global API key from settings
+                if not api_key:
+                    api_key = settings.OPENAI_API_KEY
+
+                if not api_key:
+                    logger.error(
+                        "openai_api_key_not_found",
                         tenant_id=tenant_id,
                     )
+                    return [None] * len(texts)
 
-            if not api_key:
-                logger.error(
-                    "openai_api_key_not_found",
-                    tenant_id=tenant_id,
+                # Initialize OpenAI client
+                client = AsyncOpenAI(api_key=api_key)
+
+                # Generate embeddings (OpenAI supports batch up to 2048 inputs)
+                model = model or settings.EMBEDDING_MODEL
+                response = await client.embeddings.create(
+                    input=texts,
+                    model=model,
                 )
-                return [None] * len(texts)
 
-            # Initialize OpenAI client
-            client = AsyncOpenAI(api_key=api_key)
+                # Extract embeddings in order
+                embeddings = [item.embedding for item in response.data]
 
-            # Generate embeddings (OpenAI supports batch up to 2048 inputs)
-            model = model or settings.EMBEDDING_MODEL
-            response = await client.embeddings.create(
-                input=texts,
-                model=model,
-            )
+                logger.info(
+                    "batch_embeddings_generated",
+                    tenant_id=tenant_id,
+                    provider=provider,
+                    model=model,
+                    batch_size=len(texts),
+                )
 
-            # Extract embeddings in order
-            embeddings = [item.embedding for item in response.data]
-
-            logger.info(
-                "batch_embeddings_generated",
-                tenant_id=tenant_id,
-                model=model,
-                batch_size=len(texts),
-            )
-
-            return embeddings
+                return embeddings
 
         except Exception as e:
             logger.error(

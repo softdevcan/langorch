@@ -3,11 +3,20 @@ WorkflowExecution model for LangGraph v0.4
 """
 from uuid import UUID
 from datetime import datetime
+from enum import Enum
 from sqlalchemy import String, ForeignKey, Text, JSON, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 
 from app.models.base import Base
+
+
+class ExecutionStatus(str, Enum):
+    """Workflow execution status enum"""
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    INTERRUPTED = "interrupted"
 
 
 class WorkflowExecution(Base):

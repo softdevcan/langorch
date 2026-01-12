@@ -25,7 +25,7 @@ from app.schemas.conversation import (
 )
 
 logger = structlog.get_logger()
-router = APIRouter(prefix="/workflows", tags=["Workflows"])
+router = APIRouter(tags=["Workflows"])
 
 
 @router.post("/execute", response_model=WorkflowExecuteResponse)
@@ -73,13 +73,135 @@ async def execute_workflow(
         )
 
 
+from fastapi import Query
+
+async def get_user_from_token_query(token: str = Query(None)) -> User:
+    """
+    Get user from token query parameter (for EventSource compatibility)
+    EventSource cannot send custom headers, so we accept token as query param
+    """
+    import jwt
+    from app.core.config import settings
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication token required"
+        )
+
+    try:
+        # Decode JWT token
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        user_id: str = payload.get("sub")
+
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication token"
+            )
+
+        # Get user from database
+        from app.core.database import AsyncSessionLocal
+        from sqlalchemy import select
+
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(User).where(User.id == user_id))
+            user = result.scalar_one_or_none()
+
+            if user is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="User not found"
+                )
+
+            return user
+
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token"
+        )
+
+
+@router.get("/execute/stream")
+async def stream_workflow_get(
+    workflow_config: str,
+    user_input: str,
+    session_id: str = None,
+    workflow_id: str = None,
+    current_user: User = Depends(get_user_from_token_query)
+):
+    """
+    Stream workflow execution via GET (for EventSource compatibility)
+
+    Query parameters:
+        workflow_config: JSON string of workflow configuration
+        user_input: User input text
+        session_id: Optional conversation session ID
+        workflow_id: Optional workflow template ID
+    """
+    import json as json_lib
+
+    # Parse workflow_config from JSON string
+    try:
+        config = json_lib.loads(workflow_config)
+    except json_lib.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid workflow_config JSON: {str(e)}"
+        )
+
+    service = WorkflowExecutionService(
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id
+    )
+
+    async def event_generator():
+        """Generate Server-Sent Events"""
+        try:
+            # Send start event
+            yield f"event: start\ndata: {json.dumps({'status': 'started'})}\n\n"
+
+            # Stream workflow events
+            async for event in service.stream_workflow(
+                workflow_config=config,
+                user_input=user_input,
+                session_id=session_id,
+                workflow_id=workflow_id
+            ):
+                # Send update event
+                yield f"event: update\ndata: {json.dumps(event)}\n\n"
+
+            # Send done event
+            yield f"event: done\ndata: {json.dumps({'status': 'completed'})}\n\n"
+
+        except Exception as e:
+            logger.error(
+                "workflow_streaming_error",
+                tenant_id=str(current_user.tenant_id),
+                error=str(e)
+            )
+            # Send error event
+            yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
+    )
+
+
 @router.post("/execute/stream")
-async def stream_workflow(
+async def stream_workflow_post(
     request: WorkflowExecuteRequest,
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Stream workflow execution (Server-Sent Events)
+    Stream workflow execution via POST (alternative to GET)
 
     This endpoint streams workflow events as they happen, enabling
     real-time UI updates and progressive response display.

@@ -172,9 +172,11 @@ export function ChatInterface({ sessionId }: ChatInterfaceProps) {
                     : "bg-muted"
                 }`}
               >
-                <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">
-                  {msg.content}
-                </ReactMarkdown>
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <ReactMarkdown>
+                    {msg.content}
+                  </ReactMarkdown>
+                </div>
               </div>
               {msg.role === "user" && (
                 <Avatar className="h-8 w-8 shrink-0">
@@ -195,9 +197,11 @@ export function ChatInterface({ sessionId }: ChatInterfaceProps) {
                 </AvatarFallback>
               </Avatar>
               <div className="max-w-[70%] rounded-lg px-4 py-2 bg-muted">
-                <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none">
-                  {currentStreamContent}
-                </ReactMarkdown>
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <ReactMarkdown>
+                    {currentStreamContent}
+                  </ReactMarkdown>
+                </div>
                 <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   <span>{t("streaming")}</span>

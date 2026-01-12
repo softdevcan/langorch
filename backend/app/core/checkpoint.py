@@ -61,8 +61,15 @@ class CheckpointManager:
                 timeout=30
             )
 
-            # Initialize checkpointer
+            # Open the pool explicitly (avoids deprecation warning)
+            await self._pool.open()
+
+            # Initialize checkpointer with autocommit connection for setup
+            # This is required because setup() uses CREATE INDEX CONCURRENTLY
+            # which cannot run inside a transaction block
             async with self._pool.connection() as conn:
+                # Enable autocommit for setup operations
+                await conn.set_autocommit(True)
                 self._checkpointer = AsyncPostgresSaver(conn)
                 # Setup checkpoint tables (creates tables if they don't exist)
                 await self._checkpointer.setup()

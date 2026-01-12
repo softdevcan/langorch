@@ -17,7 +17,7 @@ export const documentsApi = {
     formData.append("file", file);
 
     const { data } = await apiClient.post<DocumentUploadResponse>(
-      "/api/v1/documents/upload",
+      "/documents/upload",
       formData,
       {
         headers: {
@@ -46,7 +46,7 @@ export const documentsApi = {
       total: number;
       page: number;
       page_size: number;
-    }>("/api/v1/documents/", {
+    }>("/documents/", {
       params,
     });
     return data;
@@ -57,7 +57,7 @@ export const documentsApi = {
    */
   get: async (documentId: string): Promise<Document> => {
     const { data } = await apiClient.get<Document>(
-      `/api/v1/documents/${documentId}`
+      `/documents/${documentId}`
     );
     return data;
   },
@@ -69,7 +69,7 @@ export const documentsApi = {
     searchRequest: DocumentSearchRequest
   ): Promise<DocumentSearchResponse> => {
     const { data } = await apiClient.post<DocumentSearchResponse>(
-      "/api/v1/documents/search",
+      "/documents/search",
       searchRequest
     );
     return data;
@@ -79,7 +79,7 @@ export const documentsApi = {
    * Delete a document
    */
   delete: async (documentId: string): Promise<void> => {
-    await apiClient.delete(`/api/v1/documents/${documentId}`);
+    await apiClient.delete(`/documents/${documentId}`);
   },
 
   /**
@@ -96,7 +96,7 @@ export const documentsApi = {
       items: DocumentChunk[];
       total: number;
       document_id: string;
-    }>(`/api/v1/documents/${documentId}/chunks`);
+    }>(`/documents/${documentId}/chunks`);
     return data;
   },
 };

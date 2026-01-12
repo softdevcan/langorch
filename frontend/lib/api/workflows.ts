@@ -18,6 +18,71 @@ import type {
   HITLApprovalRespondRequest
 } from '../types';
 
+// ========== SSE Streaming Types & Helper ==========
+
+export interface StreamEventHandler {
+  onStart?: () => void;
+  onUpdate?: (data: any) => void;
+  onDone?: (data: any) => void;
+  onError?: (error: string) => void;
+}
+
+/**
+ * Stream workflow execution via Server-Sent Events
+ */
+function streamWorkflow(
+  request: WorkflowExecuteRequest,
+  handlers: StreamEventHandler
+): EventSource {
+  // Get token for authentication
+  const token = localStorage.getItem('access_token');
+
+  // Build URL with query params
+  const params = new URLSearchParams({
+    workflow_config: JSON.stringify(request.workflow_config),
+    user_input: request.user_input,
+    ...(request.session_id && { session_id: request.session_id }),
+    ...(request.workflow_id && { workflow_id: request.workflow_id }),
+    ...(token && { token })
+  });
+
+  const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+  const url = `${baseURL}/workflows/execute/stream?${params}`;
+
+  const eventSource = new EventSource(url);
+
+  eventSource.addEventListener('start', () => {
+    handlers.onStart?.();
+  });
+
+  eventSource.addEventListener('update', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      handlers.onUpdate?.(data);
+    } catch (err) {
+      console.error('Failed to parse update event:', err);
+    }
+  });
+
+  eventSource.addEventListener('done', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      handlers.onDone?.(data);
+    } catch (err) {
+      console.error('Failed to parse done event:', err);
+    }
+    eventSource.close();
+  });
+
+  eventSource.addEventListener('error', (e: any) => {
+    const errorMsg = e.data ? JSON.parse(e.data).error : 'Stream error';
+    handlers.onError?.(errorMsg);
+    eventSource.close();
+  });
+
+  return eventSource;
+}
+
 export const workflowsApi = {
   // ========== Workflow Execution ==========
 
@@ -37,7 +102,12 @@ export const workflowsApi = {
     return response.data;
   },
 
-  // Note: Streaming is handled separately with EventSource (see below)
+  /**
+   * Stream workflow execution via Server-Sent Events
+   */
+  streamWorkflow: (request: WorkflowExecuteRequest, handlers: StreamEventHandler): EventSource => {
+    return streamWorkflow(request, handlers);
+  },
 
   // ========== Session Management ==========
 
@@ -136,82 +206,3 @@ export const hitlApi = {
     return response.data;
   },
 };
-
-// ========== SSE Streaming Helper ==========
-
-export interface StreamEventHandler {
-  onStart?: () => void;
-  onUpdate?: (data: any) => void;
-  onDone?: (data: any) => void;
-  onError?: (error: string) => void;
-}
-
-/**
- * Stream workflow execution via Server-Sent Events
- *
- * @example
- * ```ts
- * const eventSource = streamWorkflow(
- *   { workflow_config, user_input },
- *   {
- *     onUpdate: (data) => console.log('Update:', data),
- *     onDone: () => console.log('Done!'),
- *     onError: (err) => console.error(err)
- *   }
- * );
- *
- * // Later, to close:
- * eventSource.close();
- * ```
- */
-export function streamWorkflow(
-  request: WorkflowExecuteRequest,
-  handlers: StreamEventHandler
-): EventSource {
-  // Get token for authentication
-  const token = localStorage.getItem('access_token');
-
-  // Build URL with query params
-  const params = new URLSearchParams({
-    workflow_config: JSON.stringify(request.workflow_config),
-    user_input: request.user_input,
-    ...(request.session_id && { session_id: request.session_id }),
-    ...(request.workflow_id && { workflow_id: request.workflow_id }),
-    ...(token && { token })
-  });
-
-  const url = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/workflows/execute/stream?${params}`;
-
-  const eventSource = new EventSource(url);
-
-  eventSource.addEventListener('start', () => {
-    handlers.onStart?.();
-  });
-
-  eventSource.addEventListener('update', (e) => {
-    try {
-      const data = JSON.parse(e.data);
-      handlers.onUpdate?.(data);
-    } catch (err) {
-      console.error('Failed to parse update event:', err);
-    }
-  });
-
-  eventSource.addEventListener('done', (e) => {
-    try {
-      const data = JSON.parse(e.data);
-      handlers.onDone?.(data);
-    } catch (err) {
-      console.error('Failed to parse done event:', err);
-    }
-    eventSource.close();
-  });
-
-  eventSource.addEventListener('error', (e: any) => {
-    const errorMsg = e.data ? JSON.parse(e.data).error : 'Stream error';
-    handlers.onError?.(errorMsg);
-    eventSource.close();
-  });
-
-  return eventSource;
-}

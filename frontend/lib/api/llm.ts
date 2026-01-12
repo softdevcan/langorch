@@ -45,7 +45,7 @@ export const llmApi = {
   summarizeDocument: async (data: DocumentSummarizeRequest): Promise<DocumentSummarizeResponse> => {
     // Start the operation
     const startResponse = await apiClient.post<DocumentOperationStartResponse>(
-      '/api/v1/llm/documents/summarize',
+      '/llm/documents/summarize',
       data
     );
 
@@ -66,7 +66,7 @@ export const llmApi = {
   askQuestion: async (data: DocumentAskRequest): Promise<DocumentAskResponse> => {
     // Start the operation
     const startResponse = await apiClient.post<DocumentOperationStartResponse>(
-      '/api/v1/llm/documents/ask',
+      '/llm/documents/ask',
       data
     );
 
@@ -88,7 +88,7 @@ export const llmApi = {
   transformDocument: async (data: DocumentTransformRequest): Promise<DocumentTransformResponse> => {
     // Start the operation
     const startResponse = await apiClient.post<DocumentOperationStartResponse>(
-      '/api/v1/llm/documents/transform',
+      '/llm/documents/transform',
       data
     );
 
@@ -107,7 +107,7 @@ export const llmApi = {
 
   // List operations
   listOperations: async (skip = 0, limit = 100): Promise<LLMOperation[]> => {
-    const response = await apiClient.get('/api/v1/llm/operations', {
+    const response = await apiClient.get('/llm/operations', {
       params: { skip, limit }
     });
     return response.data;
@@ -115,14 +115,14 @@ export const llmApi = {
 
   // Get operation
   getOperation: async (operationId: string): Promise<LLMOperation> => {
-    const response = await apiClient.get(`/api/v1/llm/operations/${operationId}`);
+    const response = await apiClient.get(`/llm/operations/${operationId}`);
     return response.data;
   },
 
   // Get latest summary for a document
   getLatestSummary: async (documentId: string): Promise<LLMOperation | null> => {
     try {
-      const response = await apiClient.get(`/api/v1/llm/documents/${documentId}/summarize/latest`);
+      const response = await apiClient.get(`/llm/documents/${documentId}/summarize/latest`);
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 404) {

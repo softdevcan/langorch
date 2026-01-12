@@ -46,7 +46,7 @@ const navItems: NavItem[] = [
   },
   {
     titleKey: "tenants",
-    href: "/dashboard/tenants",
+    href: "/tenants",
     icon: Building2,
     roles: [UserRole.SUPER_ADMIN],
   },

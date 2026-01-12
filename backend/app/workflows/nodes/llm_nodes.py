@@ -8,9 +8,12 @@ from typing import Dict, Any, Callable
 from uuid import UUID
 from langchain_core.messages import HumanMessage, AIMessage
 import structlog
+from sqlalchemy import select
 
 from app.workflows.state import WorkflowState
 from app.services.litellm_service import LiteLLMService
+from app.core.database import AsyncSessionLocal
+from app.models.tenant import Tenant
 
 logger = structlog.get_logger()
 
@@ -52,8 +55,22 @@ def create_llm_node(config: Dict[str, Any]) -> Callable:
                 "error": "Missing tenant_id in metadata"
             }
 
-        # Initialize LiteLLM service
-        llm_service = LiteLLMService(tenant_id=tenant_id, provider=provider)
+        # Load tenant LLM config from database
+        tenant_llm_config = None
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(Tenant).where(Tenant.id == tenant_id)
+            )
+            tenant = result.scalar_one_or_none()
+            if tenant:
+                tenant_llm_config = tenant.llm_config or {}
+
+        # Initialize LiteLLM service with tenant config
+        llm_service = LiteLLMService(
+            tenant_id=tenant_id,
+            provider=provider,
+            tenant_config=tenant_llm_config
+        )
 
         # Prepare messages
         messages = [
@@ -151,8 +168,22 @@ def create_rag_generator_node(config: Dict[str, Any]) -> Callable:
                 "error": "Missing tenant_id in metadata"
             }
 
-        # Initialize LLM service
-        llm_service = LiteLLMService(tenant_id=tenant_id, provider=provider)
+        # Load tenant LLM config from database
+        tenant_llm_config = None
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(Tenant).where(Tenant.id == tenant_id)
+            )
+            tenant = result.scalar_one_or_none()
+            if tenant:
+                tenant_llm_config = tenant.llm_config or {}
+
+        # Initialize LLM service with tenant config
+        llm_service = LiteLLMService(
+            tenant_id=tenant_id,
+            provider=provider,
+            tenant_config=tenant_llm_config
+        )
 
         # Prepare context from retrieved documents
         docs = state.get("documents", [])
@@ -162,10 +193,8 @@ def create_rag_generator_node(config: Dict[str, Any]) -> Callable:
                 "rag_generator_no_documents",
                 tenant_id=str(tenant_id)
             )
-            return {
-                **state,
-                "error": "No documents available for generation"
-            }
+            # Fallback to general chat without documents
+            # Don't return error, continue with no context
 
         # Format documents as context
         context_parts = []
@@ -205,8 +234,10 @@ def create_rag_generator_node(config: Dict[str, Any]) -> Callable:
                 "error": "No user query found in messages"
             }
 
-        # Create RAG prompt
-        prompt = f"""Based on the following documents, answer the user's question.
+        # Create prompt based on whether documents are available
+        if docs:
+            # RAG prompt with documents
+            prompt = f"""Based on the following documents, answer the user's question.
 Use only information from the provided documents. If the answer cannot be found in the documents, say so.
 
 Documents:
@@ -215,6 +246,9 @@ Documents:
 Question: {query}
 
 Answer:"""
+        else:
+            # Fallback to general chat without documents
+            prompt = query
 
         messages = [
             {"role": "user", "content": prompt}

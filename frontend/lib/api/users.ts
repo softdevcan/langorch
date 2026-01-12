@@ -8,26 +8,26 @@ export const usersApi = {
       total: number;
       page: number;
       page_size: number;
-    }>("/api/v1/users/");
+    }>("/users/");
     return data.items;
   },
 
   get: async (userId: string): Promise<User> => {
-    const { data } = await apiClient.get<User>(`/api/v1/users/${userId}`);
+    const { data } = await apiClient.get<User>(`/users/${userId}`);
     return data;
   },
 
   create: async (user: UserCreate): Promise<User> => {
-    const { data } = await apiClient.post<User>("/api/v1/users/", user);
+    const { data } = await apiClient.post<User>("/users/", user);
     return data;
   },
 
   update: async (userId: string, user: UserUpdate): Promise<User> => {
-    const { data } = await apiClient.patch<User>(`/api/v1/users/${userId}`, user);
+    const { data } = await apiClient.patch<User>(`/users/${userId}`, user);
     return data;
   },
 
   delete: async (userId: string): Promise<void> => {
-    await apiClient.delete(`/api/v1/users/${userId}`);
+    await apiClient.delete(`/users/${userId}`);
   },
 };

@@ -16,11 +16,11 @@ from app.core.database import get_db
 from app.models.hitl_approval import HITLApproval, ApprovalStatus
 from app.schemas.hitl import (
     HITLApprovalResponse,
-    HITLApprovalRespondRequest
+    HITLRespondRequest
 )
 
 logger = structlog.get_logger()
-router = APIRouter(prefix="/hitl", tags=["Human-in-the-Loop"])
+router = APIRouter(tags=["Human-in-the-Loop"])
 
 
 @router.get("/approvals/pending", response_model=List[HITLApprovalResponse])
@@ -130,7 +130,7 @@ async def get_approval(
 @router.post("/approvals/{approval_id}/respond", response_model=HITLApprovalResponse)
 async def respond_to_approval(
     approval_id: str,
-    request: HITLApprovalRespondRequest,
+    request: HITLRespondRequest,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):

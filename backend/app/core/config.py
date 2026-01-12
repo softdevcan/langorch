@@ -46,7 +46,9 @@ class Settings(BaseSettings):
     # HashiCorp Vault
     VAULT_ENABLED: bool = True  # Enable/disable Vault integration
     VAULT_URL: str = "http://localhost:8200"
+    VAULT_ADDR: str = "http://localhost:8200"  # Alias for VAULT_URL (hvac compatibility)
     VAULT_TOKEN: str = "dev-root-token"
+    VAULT_MOUNT_POINT: str = "secret"  # KV secrets engine mount point
 
     # Qdrant Vector Store
     QDRANT_HOST: str = "localhost"
@@ -64,6 +66,11 @@ class Settings(BaseSettings):
 
     # OpenAI (Fallback when Vault is not available)
     OPENAI_API_KEY: str = ""  # Fallback API key for development
+
+    # Ollama Local LLM
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "llama2"  # Default Ollama model
+    USE_OLLAMA: bool = True  # Use Ollama instead of OpenAI
 
     model_config = SettingsConfigDict(
         env_file=".env",

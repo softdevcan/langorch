@@ -6,7 +6,8 @@
       "Bash(python -m alembic revision:*)",
       "Bash(python -m alembic:*)",
       "Bash(cat:*)",
-      "Bash(C:UserscakyildirimPycharmProjectslangorchvenvScriptsalembic.exe current)"
+      "Bash(C:UserscakyildirimPycharmProjectslangorchvenvScriptsalembic.exe current)",
+      "Bash(\"c:\\\\Users\\\\cakyildirim\\\\PycharmProjects\\\\langorch\\\\venv\\\\Scripts\\\\python.exe\" -c \"from app.services.workflow_service import WorkflowExecutionService; print\\(''Import successful''\\)\")"
     ]
   }
 }

@@ -3,11 +3,19 @@ HITLApproval model for LangGraph v0.4
 """
 from uuid import UUID
 from datetime import datetime
+from enum import Enum
 from sqlalchemy import String, ForeignKey, Text, JSON, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 
 from app.models.base import Base
+
+
+class ApprovalStatus(str, Enum):
+    """HITL approval status enum"""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
 
 
 class HITLApproval(Base):
