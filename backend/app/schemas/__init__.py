@@ -64,6 +64,17 @@ from app.schemas.hitl import (
     HITLApprovalResponse,
     HITLRespondRequest,
 )
+from app.schemas.session import (
+    SessionDocumentCreate,
+    SessionDocumentResponse,
+    SessionDocumentWithDetails,
+    SessionContextResponse,
+    SessionModeUpdate,
+    SessionMetadata,
+    SessionDocumentListResponse,
+    SessionDocumentAddResponse,
+    SessionDocumentRemoveResponse,
+)
 
 
 __all__ = [
@@ -95,4 +106,14 @@ __all__ = [
     "HITLApprovalCreate",
     "HITLApprovalResponse",
     "HITLRespondRequest",
+    # v0.4.1 Session schemas
+    "SessionDocumentCreate",
+    "SessionDocumentResponse",
+    "SessionDocumentWithDetails",
+    "SessionContextResponse",
+    "SessionModeUpdate",
+    "SessionMetadata",
+    "SessionDocumentListResponse",
+    "SessionDocumentAddResponse",
+    "SessionDocumentRemoveResponse",
 ]

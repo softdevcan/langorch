@@ -3,7 +3,7 @@ ConversationSession model for LangGraph v0.4
 """
 from uuid import UUID
 from datetime import datetime
-from sqlalchemy import String, ForeignKey, Text, JSON, DateTime
+from sqlalchemy import ForeignKey, Text, JSON, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 
@@ -80,6 +80,12 @@ class ConversationSession(Base):
         back_populates="session",
         cascade="all, delete-orphan",
         order_by="Message.created_at"
+    )
+    session_documents = relationship(
+        "SessionDocument",
+        back_populates="session",
+        cascade="all, delete-orphan",
+        lazy="selectin"  # Eager load for session context
     )
 
     def __repr__(self) -> str:

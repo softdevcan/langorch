@@ -18,6 +18,9 @@ from app.models.conversation_session import ConversationSession
 from app.models.message import Message
 from app.models.hitl_approval import HITLApproval
 
+# v0.4.1 models
+from app.models.session_document import SessionDocument
+
 __all__ = [
     "Base",
     "BaseModel",
@@ -37,4 +40,6 @@ __all__ = [
     "ConversationSession",
     "Message",
     "HITLApproval",
+    # v0.4.1 models
+    "SessionDocument",
 ]
