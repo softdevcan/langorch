@@ -3,7 +3,17 @@ API v1 router - combines all endpoint routers
 """
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, users, tenants, documents, secrets, settings, llm_operations
+from app.api.v1.endpoints import (
+    auth,
+    users,
+    tenants,
+    documents,
+    secrets,
+    settings,
+    llm_operations,
+    workflows,  # v0.4
+    hitl       # v0.4
+)
 
 # Create API v1 router
 api_router = APIRouter()
@@ -16,3 +26,7 @@ api_router.include_router(documents.router)
 api_router.include_router(secrets.router)
 api_router.include_router(settings.router, prefix="/settings")  # Settings endpoints
 api_router.include_router(llm_operations.router)  # LLM operations endpoints
+
+# v0.4 - LangGraph workflow orchestration
+api_router.include_router(workflows.router)  # Workflow execution & sessions
+api_router.include_router(hitl.router)  # Human-in-the-Loop approvals
