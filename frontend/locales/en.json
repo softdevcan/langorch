@@ -112,7 +112,27 @@
     "createFailed": "Failed to create chat session",
     "loadFailed": "Failed to load conversations",
     "messagesFailed": "Failed to load messages",
-    "thinking": "Thinking..."
+    "thinking": "Thinking...",
+    "documents": {
+      "title": "Documents",
+      "activeCount": "Active ({count})",
+      "addDocument": "Add Document",
+      "noDocuments": "No documents available",
+      "uploadDocument": "Upload Document",
+      "loadFailed": "Failed to load documents",
+      "documentAdded": "Document added to chat",
+      "documentRemoved": "Document removed from chat",
+      "toggleFailed": "Failed to update document"
+    },
+    "mode": {
+      "label": "Mode",
+      "auto": "Auto (Recommended)",
+      "chatOnly": "Chat Only",
+      "ragOnly": "Document Q&A",
+      "noDocsRequired": "requires documents",
+      "updated": "Chat mode updated",
+      "updateFailed": "Failed to update mode"
+    }
   },
   "hitl": {
     "title": "Pending Approvals",

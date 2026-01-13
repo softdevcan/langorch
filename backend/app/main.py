@@ -59,12 +59,12 @@ async def health_check():
 @app.on_event("startup")
 async def startup_event():
     """Run on application startup"""
-    logger.info(
-        "application_startup",
-        app_name=settings.APP_NAME,
-        version=settings.APP_VERSION,
-        environment=settings.APP_ENV,
-    )
+    # logger.info(
+    #     "application_startup",
+    #     app_name=settings.APP_NAME,
+    #     version=settings.APP_VERSION,
+    #     environment=settings.APP_ENV,
+    # )
 
     # Initialize Qdrant collection for documents
     try:
@@ -74,11 +74,11 @@ async def startup_event():
             collection_name=settings.QDRANT_COLLECTION_NAME,
             vector_size=settings.EMBEDDING_DIMENSIONS,
         )
-        logger.info(
-            "qdrant_collection_initialized",
-            collection=settings.QDRANT_COLLECTION_NAME,
-            dimensions=settings.EMBEDDING_DIMENSIONS,
-        )
+        # logger.info(
+        #     "qdrant_collection_initialized",
+        #     collection=settings.QDRANT_COLLECTION_NAME,
+        #     dimensions=settings.EMBEDDING_DIMENSIONS,
+        # )
     except Exception as e:
         logger.error(
             "qdrant_collection_initialization_failed",
@@ -89,7 +89,7 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Run on application shutdown"""
-    logger.info("application_shutdown", app_name=settings.APP_NAME)
+    # logger.info("application_shutdown", app_name=settings.APP_NAME)
 
 
 if __name__ == "__main__":

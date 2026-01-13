@@ -12,7 +12,6 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { workflowsApi } from "@/lib/api/workflows";
 import type { Message } from "@/lib/types";
-import { RAG_WORKFLOW_TEMPLATE } from "@/lib/workflow-templates";
 
 interface ChatInterfaceProps {
   sessionId: string;
@@ -84,10 +83,10 @@ export function ChatInterface({ sessionId }: ChatInterfaceProps) {
         eventSourceRef.current.close();
       }
 
-      // Start streaming
+      // Start streaming (using unified workflow - v0.4.1)
       const eventSource = workflowsApi.streamWorkflow(
         {
-          workflow_config: RAG_WORKFLOW_TEMPLATE,
+          // workflow_config removed - backend uses unified workflow now
           user_input: userMessage,
           session_id: sessionId
         },
@@ -96,16 +95,28 @@ export function ChatInterface({ sessionId }: ChatInterfaceProps) {
             setStreaming(true);
           },
           onUpdate: (data) => {
+            console.log("SSE Update event:", data);
+
             // Extract assistant message from state updates
             if (data.event && typeof data.event === 'object') {
               const eventValues = Object.values(data.event);
+              console.log("Event values:", eventValues);
+
               for (const value of eventValues) {
                 if (value && typeof value === 'object' && 'messages' in value) {
                   const stateMessages = (value as { messages: unknown[] }).messages;
                   const lastMsg = stateMessages[stateMessages.length - 1];
-                  if (lastMsg && typeof lastMsg === 'object' && 'content' in lastMsg) {
+                  console.log("Last message:", lastMsg);
+
+                  // Only show AI messages in stream (not user messages)
+                  if (lastMsg && typeof lastMsg === 'object' && 'content' in lastMsg && 'type' in lastMsg) {
+                    const msgType = (lastMsg as { type: unknown }).type;
                     const content = (lastMsg as { content: unknown }).content;
-                    if (typeof content === 'string') {
+
+                    if (msgType === 'AIMessage' && typeof content === 'string') {
+                      console.log("Setting AI stream content:", content);
+                      console.log("Current streaming state:", streaming);
+                      console.log("Current loading state:", loading);
                       setCurrentStreamContent(content);
                     }
                   }
@@ -113,11 +124,15 @@ export function ChatInterface({ sessionId }: ChatInterfaceProps) {
               }
             }
           },
-          onDone: () => {
+          onDone: (data) => {
+            console.log("Stream done, final data:", data);
             setStreaming(false);
             setCurrentStreamContent("");
             setLoading(false);
-            loadMessages(); // Reload messages from server
+            // Reload messages after a short delay to ensure DB write completes
+            setTimeout(() => {
+              loadMessages();
+            }, 1000); // Increased delay to 1 second
           },
           onError: (error) => {
             console.error("Streaming error:", error);

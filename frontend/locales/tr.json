@@ -112,7 +112,27 @@
     "createFailed": "Sohbet oturumu oluşturulamadı",
     "loadFailed": "Konuşmalar yüklenemedi",
     "messagesFailed": "Mesajlar yüklenemedi",
-    "thinking": "Düşünüyor..."
+    "thinking": "Düşünüyor...",
+    "documents": {
+      "title": "Dokümanlar",
+      "activeCount": "Aktif ({count})",
+      "addDocument": "Doküman Ekle",
+      "noDocuments": "Doküman yok",
+      "uploadDocument": "Doküman Yükle",
+      "loadFailed": "Dokümanlar yüklenemedi",
+      "documentAdded": "Doküman sohbete eklendi",
+      "documentRemoved": "Doküman sohbetten çıkarıldı",
+      "toggleFailed": "Doküman güncellenemedi"
+    },
+    "mode": {
+      "label": "Mod",
+      "auto": "Otomatik (Önerilen)",
+      "chatOnly": "Sadece Sohbet",
+      "ragOnly": "Doküman Soru-Cevap",
+      "noDocsRequired": "doküman gerekli",
+      "updated": "Sohbet modu güncellendi",
+      "updateFailed": "Mod güncellenemedi"
+    }
   },
   "hitl": {
     "title": "Bekleyen Onaylar",

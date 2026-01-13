@@ -7,6 +7,7 @@ using LangGraph StateGraph with checkpoint-based state persistence.
 from typing import Dict, Any, AsyncIterator, Optional
 from uuid import UUID, uuid4
 import structlog
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from langchain_core.messages import HumanMessage
 
@@ -684,17 +685,39 @@ class WorkflowExecutionService:
                 }
 
                 # Stream execution
+                final_state = None
                 async for event in compiled_graph.astream(initial_state, config, stream_mode="updates"):
                     # Serialize event
                     serialized_event = self._serialize_event(event)
+                    # Keep track of final state
+                    final_state = event
                     yield {
                         "session_id": session_id,
                         "execution_id": str(execution.id),
                         "event": serialized_event
                     }
 
-                # Mark as completed
+                # Get final state from checkpoint if needed
+                if not final_state:
+                    final_state_snapshot = await compiled_graph.aget_state(config)
+                    final_state = final_state_snapshot.values if final_state_snapshot else {}
+
+                # Save final output and messages
                 execution.status = ExecutionStatus.COMPLETED
+                if final_state:
+                    # Extract final state from event (it's wrapped in node name)
+                    if isinstance(final_state, dict):
+                        state_values = list(final_state.values())[0] if final_state else {}
+                        execution.output_data = self._serialize_event(state_values)
+
+                        # Save messages to database
+                        if isinstance(state_values, dict) and 'messages' in state_values:
+                            await self._save_messages_to_db(
+                                db=db,
+                                session_id=session_id,
+                                messages=state_values['messages']
+                            )
+
                 await db.commit()
 
                 logger.info(
@@ -715,3 +738,53 @@ class WorkflowExecutionService:
                     error=str(e)
                 )
                 raise
+
+    async def _save_messages_to_db(
+        self,
+        db: AsyncSession,
+        session_id: str,
+        messages: list
+    ):
+        """Save LangChain messages to database"""
+        from app.models.message import Message as DBMessage, MessageRole
+        from langchain_core.messages import HumanMessage, AIMessage
+        from uuid import UUID
+
+        # Convert session_id string to UUID
+        session_uuid = UUID(session_id) if isinstance(session_id, str) else session_id
+
+        for msg in messages:
+            # Determine role
+            role = MessageRole.SYSTEM.value
+            if isinstance(msg, HumanMessage):
+                role = MessageRole.USER.value
+            elif isinstance(msg, AIMessage):
+                role = MessageRole.ASSISTANT.value
+            elif hasattr(msg, 'type'):
+                if msg.type == 'HumanMessage':
+                    role = MessageRole.USER.value
+                elif msg.type == 'AIMessage':
+                    role = MessageRole.ASSISTANT.value
+
+            # Extract content
+            content = msg.content if hasattr(msg, 'content') else str(msg)
+
+            # Check if message already exists (avoid duplicates)
+            existing = await db.execute(
+                select(DBMessage).where(
+                    DBMessage.session_id == session_uuid,
+                    DBMessage.role == role,
+                    DBMessage.content == content
+                )
+            )
+            if existing.scalars().first():
+                continue  # Skip if already exists
+
+            # Create new message
+            db_message = DBMessage(
+                session_id=session_uuid,
+                role=role,
+                content=content,
+                message_metadata={}
+            )
+            db.add(db_message)

@@ -320,7 +320,7 @@ export interface WorkflowExecution {
 }
 
 export interface WorkflowExecuteRequest {
-  workflow_config: WorkflowConfig;
+  workflow_config?: WorkflowConfig; // DEPRECATED: Backend now uses unified workflow
   user_input: string;
   session_id?: string;
   workflow_id?: string;
@@ -390,4 +390,52 @@ export interface HITLApproval {
 export interface HITLApprovalRespondRequest {
   approved: boolean;
   feedback?: string;
+}
+
+// ========== v0.4.1: Session Enhancement Types ==========
+
+export enum SessionMode {
+  AUTO = "auto",           // Smart routing (recommended)
+  CHAT_ONLY = "chat_only", // Force direct chat
+  RAG_ONLY = "rag_only",   // Force RAG pipeline
+}
+
+export interface SessionDocument {
+  id: string;
+  session_id: string;
+  document_id: string;
+  added_at: string;
+  is_active: boolean;
+}
+
+export interface SessionDocumentCreate {
+  document_id: string;
+}
+
+export interface SessionDocumentListResponse {
+  items: SessionDocument[];
+  total: number;
+  session_id: string;
+}
+
+export interface SessionDocumentAddResponse {
+  session_document: SessionDocument;
+  message: string;
+}
+
+export interface SessionContext {
+  mode: SessionMode;
+  active_documents: string[];
+  total_documents: number;
+  total_chunks: number;
+}
+
+export interface SessionModeUpdate {
+  mode: SessionMode;
+}
+
+export interface RoutingMetadata {
+  route: string;           // "direct_chat" | "rag_needed" | "hybrid"
+  confidence: number;      // 0.0-1.0
+  reasoning: Record<string, any>;
 }

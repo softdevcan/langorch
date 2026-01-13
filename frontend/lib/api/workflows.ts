@@ -29,6 +29,7 @@ export interface StreamEventHandler {
 
 /**
  * Stream workflow execution via Server-Sent Events
+ * @deprecated workflow_config parameter will be removed. Backend now uses unified workflow.
  */
 function streamWorkflow(
   request: WorkflowExecuteRequest,
@@ -39,11 +40,12 @@ function streamWorkflow(
 
   // Build URL with query params
   const params = new URLSearchParams({
-    workflow_config: JSON.stringify(request.workflow_config),
     user_input: request.user_input,
     ...(request.session_id && { session_id: request.session_id }),
     ...(request.workflow_id && { workflow_id: request.workflow_id }),
-    ...(token && { token })
+    ...(token && { token }),
+    // workflow_config is deprecated but kept for backward compatibility
+    ...(request.workflow_config && { workflow_config: JSON.stringify(request.workflow_config) })
   });
 
   const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
