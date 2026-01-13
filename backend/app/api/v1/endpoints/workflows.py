@@ -36,6 +36,10 @@ async def execute_workflow(
     """
     Execute workflow to completion
 
+    **v0.4.1+ Recommended**: Use unified workflow with automatic routing.
+    If workflow_config is provided, it uses the old method (backward compatible).
+    If not provided, uses the new unified workflow.
+
     This endpoint runs the workflow synchronously and returns the complete result.
     For streaming responses, use POST /workflows/execute/stream instead.
 
@@ -44,7 +48,7 @@ async def execute_workflow(
         current_user: Authenticated user
 
     Returns:
-        Execution result with session_id, status, and output
+        Execution result with session_id, status, routing metadata, and output
     """
     service = WorkflowExecutionService(
         tenant_id=current_user.tenant_id,
@@ -52,12 +56,27 @@ async def execute_workflow(
     )
 
     try:
-        result = await service.execute_workflow(
-            workflow_config=request.workflow_config,
-            user_input=request.user_input,
-            session_id=request.session_id,
-            workflow_id=request.workflow_id
-        )
+        # Backward compatibility: Check if workflow_config is provided
+        if request.workflow_config:
+            # OLD WAY: Use provided workflow config (v0.4.0 backward compat)
+            logger.warning(
+                "workflow_config_deprecated",
+                tenant_id=str(current_user.tenant_id),
+                message="workflow_config parameter is deprecated. Use unified workflow (v0.4.1+) for automatic routing."
+            )
+            result = await service.execute_workflow(
+                workflow_config=request.workflow_config,
+                user_input=request.user_input,
+                session_id=request.session_id,
+                workflow_id=request.workflow_id
+            )
+        else:
+            # NEW WAY: Use unified workflow (v0.4.1+)
+            result = await service.execute_unified_workflow(
+                user_input=request.user_input,
+                session_id=request.session_id or str(__import__('uuid').uuid4()),
+                workflow_id=request.workflow_id
+            )
 
         return result
 
@@ -125,8 +144,8 @@ async def get_user_from_token_query(token: str = Query(None)) -> User:
 
 @router.get("/execute/stream")
 async def stream_workflow_get(
-    workflow_config: str,
     user_input: str,
+    workflow_config: str = None,
     session_id: str = None,
     workflow_id: str = None,
     current_user: User = Depends(get_user_from_token_query)
@@ -134,23 +153,16 @@ async def stream_workflow_get(
     """
     Stream workflow execution via GET (for EventSource compatibility)
 
+    **v0.4.1+ Recommended**: Use unified workflow with automatic routing.
+    If workflow_config is provided, it uses the old method (backward compatible).
+    If not provided, uses the new unified workflow.
+
     Query parameters:
-        workflow_config: JSON string of workflow configuration
         user_input: User input text
+        workflow_config: Optional JSON string of workflow configuration (deprecated in v0.4.1+)
         session_id: Optional conversation session ID
         workflow_id: Optional workflow template ID
     """
-    import json as json_lib
-
-    # Parse workflow_config from JSON string
-    try:
-        config = json_lib.loads(workflow_config)
-    except json_lib.JSONDecodeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid workflow_config JSON: {str(e)}"
-        )
-
     service = WorkflowExecutionService(
         tenant_id=current_user.tenant_id,
         user_id=current_user.id
@@ -162,15 +174,40 @@ async def stream_workflow_get(
             # Send start event
             yield f"event: start\ndata: {json.dumps({'status': 'started'})}\n\n"
 
-            # Stream workflow events
-            async for event in service.stream_workflow(
-                workflow_config=config,
-                user_input=user_input,
-                session_id=session_id,
-                workflow_id=workflow_id
-            ):
-                # Send update event
-                yield f"event: update\ndata: {json.dumps(event)}\n\n"
+            # Backward compatibility: Check if workflow_config is provided
+            if workflow_config:
+                # OLD WAY: Parse and use provided workflow config (v0.4.0 backward compat)
+                import json as json_lib
+
+                try:
+                    config = json_lib.loads(workflow_config)
+                except json_lib.JSONDecodeError as e:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Invalid workflow_config JSON: {str(e)}"
+                    )
+
+                logger.warning(
+                    "workflow_config_deprecated_stream",
+                    tenant_id=str(current_user.tenant_id),
+                    message="workflow_config parameter is deprecated. Use unified workflow (v0.4.1+) for automatic routing."
+                )
+
+                async for event in service.stream_workflow(
+                    workflow_config=config,
+                    user_input=user_input,
+                    session_id=session_id,
+                    workflow_id=workflow_id
+                ):
+                    yield f"event: update\ndata: {json.dumps(event)}\n\n"
+            else:
+                # NEW WAY: Use unified workflow (v0.4.1+)
+                async for event in service.stream_unified_workflow(
+                    user_input=user_input,
+                    session_id=session_id or str(__import__('uuid').uuid4()),
+                    workflow_id=workflow_id
+                ):
+                    yield f"event: update\ndata: {json.dumps(event)}\n\n"
 
             # Send done event
             yield f"event: done\ndata: {json.dumps({'status': 'completed'})}\n\n"
@@ -203,6 +240,10 @@ async def stream_workflow_post(
     """
     Stream workflow execution via POST (alternative to GET)
 
+    **v0.4.1+ Recommended**: Use unified workflow with automatic routing.
+    If workflow_config is provided, it uses the old method (backward compatible).
+    If not provided, uses the new unified workflow.
+
     This endpoint streams workflow events as they happen, enabling
     real-time UI updates and progressive response display.
 
@@ -230,15 +271,30 @@ async def stream_workflow_post(
             # Send start event
             yield f"event: start\ndata: {json.dumps({'status': 'started'})}\n\n"
 
-            # Stream workflow events
-            async for event in service.stream_workflow(
-                workflow_config=request.workflow_config,
-                user_input=request.user_input,
-                session_id=request.session_id,
-                workflow_id=request.workflow_id
-            ):
-                # Send update event
-                yield f"event: update\ndata: {json.dumps(event)}\n\n"
+            # Backward compatibility: Check if workflow_config is provided
+            if request.workflow_config:
+                # OLD WAY: Use provided workflow config (v0.4.0 backward compat)
+                logger.warning(
+                    "workflow_config_deprecated_stream",
+                    tenant_id=str(current_user.tenant_id),
+                    message="workflow_config parameter is deprecated. Use unified workflow (v0.4.1+) for automatic routing."
+                )
+
+                async for event in service.stream_workflow(
+                    workflow_config=request.workflow_config,
+                    user_input=request.user_input,
+                    session_id=request.session_id,
+                    workflow_id=request.workflow_id
+                ):
+                    yield f"event: update\ndata: {json.dumps(event)}\n\n"
+            else:
+                # NEW WAY: Use unified workflow (v0.4.1+)
+                async for event in service.stream_unified_workflow(
+                    user_input=request.user_input,
+                    session_id=request.session_id or str(__import__('uuid').uuid4()),
+                    workflow_id=request.workflow_id
+                ):
+                    yield f"event: update\ndata: {json.dumps(event)}\n\n"
 
             # Send done event
             yield f"event: done\ndata: {json.dumps({'status': 'completed'})}\n\n"

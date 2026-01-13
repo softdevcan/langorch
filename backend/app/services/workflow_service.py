@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from langchain_core.messages import HumanMessage
 
 from app.workflows.builder import WorkflowBuilder
+from app.workflows.unified_workflow import build_unified_workflow, get_unified_workflow_config
 from app.core.checkpoint import checkpoint_manager
 from app.core.database import AsyncSessionLocal
 from app.models.workflow_execution import WorkflowExecution, ExecutionStatus
@@ -460,3 +461,257 @@ class WorkflowExecutionService:
                 .limit(limit)
             )
             return list(result.scalars().all())
+
+    async def execute_unified_workflow(
+        self,
+        user_input: str,
+        session_id: str,
+        workflow_id: Optional[UUID] = None,
+        config_override: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Execute unified workflow with automatic routing (v0.4.1)
+
+        This method uses the new unified workflow that automatically routes
+        queries between direct chat and RAG based on user intent and session context.
+
+        Args:
+            user_input: User query/input
+            session_id: Session ID for conversation continuity
+            workflow_id: Optional workflow UUID (for tracking)
+            config_override: Optional configuration overrides
+
+        Returns:
+            Execution result with session_id, status, routing metadata, and output
+
+        Note:
+            This is the recommended method for v0.4.1+. It automatically:
+            - Loads session context and documents
+            - Routes intelligently between chat and RAG
+            - Provides routing decision metadata
+        """
+        thread_id = checkpoint_manager.create_thread_id(
+            str(self.tenant_id),
+            session_id
+        )
+
+        async with AsyncSessionLocal() as db:
+            try:
+                # Create execution record
+                execution = WorkflowExecution(
+                    tenant_id=self.tenant_id,
+                    user_id=self.user_id,
+                    workflow_id=workflow_id,
+                    thread_id=thread_id,
+                    status=ExecutionStatus.RUNNING,
+                    input_data={"user_input": user_input}
+                )
+                db.add(execution)
+                await db.commit()
+                await db.refresh(execution)
+
+                # Build unified workflow
+                checkpointer = await checkpoint_manager.get_checkpointer()
+                workflow_config = config_override or get_unified_workflow_config()
+                compiled_graph = build_unified_workflow(
+                    checkpointer=checkpointer,
+                    config=workflow_config
+                )
+
+                # Prepare initial state
+                initial_state = {
+                    "messages": [HumanMessage(content=user_input)],
+                    "documents": [],
+                    "context": "",
+                    "metadata": {
+                        "tenant_id": str(self.tenant_id),
+                        "user_id": str(self.user_id),
+                        "session_id": session_id,
+                        "execution_id": str(execution.id)
+                    },
+                    "intermediate_results": {},
+                    "approved": None,
+                    "error": None,
+                    # Unified workflow fields
+                    "route_decision": None,
+                    "route_confidence": 0.0,
+                    "routing_metadata": {},
+                    "session_context": {},
+                    "active_documents": []
+                }
+
+                config = {
+                    "configurable": {
+                        "thread_id": thread_id
+                    }
+                }
+
+                # Execute workflow
+                result = await compiled_graph.ainvoke(initial_state, config)
+
+                # Update execution record
+                execution.status = ExecutionStatus.COMPLETED
+                execution.output_data = {
+                    "messages": [
+                        {"role": "user" if i % 2 == 0 else "assistant", "content": str(msg.content)}
+                        for i, msg in enumerate(result.get("messages", []))
+                    ],
+                    "intermediate_results": result.get("intermediate_results", {}),
+                    "routing": {
+                        "decision": result.get("route_decision"),
+                        "confidence": result.get("route_confidence"),
+                        "metadata": result.get("routing_metadata", {})
+                    }
+                }
+                await db.commit()
+
+                logger.info(
+                    "unified_workflow_executed",
+                    tenant_id=str(self.tenant_id),
+                    execution_id=str(execution.id),
+                    session_id=session_id,
+                    route_decision=result.get("route_decision"),
+                    route_confidence=result.get("route_confidence")
+                )
+
+                return {
+                    "session_id": session_id,
+                    "execution_id": str(execution.id),
+                    "status": "completed",
+                    "routing": {
+                        "decision": result.get("route_decision"),
+                        "confidence": result.get("route_confidence"),
+                        "reasoning": result.get("routing_metadata", {})
+                    },
+                    "result": result
+                }
+
+            except Exception as e:
+                # Update execution with error
+                execution.status = ExecutionStatus.FAILED
+                execution.error_message = str(e)
+                await db.commit()
+
+                logger.error(
+                    "unified_workflow_execution_error",
+                    tenant_id=str(self.tenant_id),
+                    execution_id=str(execution.id) if execution else None,
+                    error=str(e)
+                )
+
+                return {
+                    "session_id": session_id,
+                    "execution_id": str(execution.id) if execution else None,
+                    "status": "failed",
+                    "error": str(e)
+                }
+
+    async def stream_unified_workflow(
+        self,
+        user_input: str,
+        session_id: str,
+        workflow_id: Optional[UUID] = None,
+        config_override: Optional[Dict[str, Any]] = None
+    ) -> AsyncIterator[Dict[str, Any]]:
+        """
+        Stream unified workflow execution (v0.4.1)
+
+        Streams events from the unified workflow with routing metadata.
+
+        Args:
+            user_input: User query/input
+            session_id: Session ID
+            workflow_id: Optional workflow UUID
+            config_override: Optional configuration overrides
+
+        Yields:
+            Event dictionaries including routing decisions
+        """
+        thread_id = checkpoint_manager.create_thread_id(
+            str(self.tenant_id),
+            session_id
+        )
+
+        async with AsyncSessionLocal() as db:
+            try:
+                # Create execution record
+                execution = WorkflowExecution(
+                    tenant_id=self.tenant_id,
+                    user_id=self.user_id,
+                    workflow_id=workflow_id,
+                    thread_id=thread_id,
+                    status=ExecutionStatus.RUNNING,
+                    input_data={"user_input": user_input}
+                )
+                db.add(execution)
+                await db.commit()
+                await db.refresh(execution)
+
+                # Build unified workflow
+                checkpointer = await checkpoint_manager.get_checkpointer()
+                workflow_config = config_override or get_unified_workflow_config()
+                compiled_graph = build_unified_workflow(
+                    checkpointer=checkpointer,
+                    config=workflow_config
+                )
+
+                # Initial state
+                initial_state = {
+                    "messages": [HumanMessage(content=user_input)],
+                    "documents": [],
+                    "context": "",
+                    "metadata": {
+                        "tenant_id": str(self.tenant_id),
+                        "user_id": str(self.user_id),
+                        "session_id": session_id,
+                        "execution_id": str(execution.id)
+                    },
+                    "intermediate_results": {},
+                    "approved": None,
+                    "error": None,
+                    # Unified workflow fields
+                    "route_decision": None,
+                    "route_confidence": 0.0,
+                    "routing_metadata": {},
+                    "session_context": {},
+                    "active_documents": []
+                }
+
+                config = {
+                    "configurable": {
+                        "thread_id": thread_id
+                    }
+                }
+
+                # Stream execution
+                async for event in compiled_graph.astream(initial_state, config, stream_mode="updates"):
+                    # Serialize event
+                    serialized_event = self._serialize_event(event)
+                    yield {
+                        "session_id": session_id,
+                        "execution_id": str(execution.id),
+                        "event": serialized_event
+                    }
+
+                # Mark as completed
+                execution.status = ExecutionStatus.COMPLETED
+                await db.commit()
+
+                logger.info(
+                    "unified_workflow_streamed",
+                    tenant_id=str(self.tenant_id),
+                    execution_id=str(execution.id),
+                    session_id=session_id
+                )
+
+            except Exception as e:
+                execution.status = ExecutionStatus.FAILED
+                execution.error_message = str(e)
+                await db.commit()
+
+                logger.error(
+                    "unified_workflow_streaming_error",
+                    tenant_id=str(self.tenant_id),
+                    error=str(e)
+                )
+                raise
